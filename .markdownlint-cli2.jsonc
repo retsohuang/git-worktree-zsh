@@ -1,0 +1,37 @@
+{
+  // markdownlint-cli2 configuration for git-worktree-zsh
+  // See: https://github.com/DavidAnson/markdownlint-cli2#configuration
+  
+  // Glob patterns for files to lint
+  "globs": [
+    "*.md",
+    "!.agent-os/**",
+    "!CLAUDE.md"
+  ],
+  
+  // Glob patterns for files to ignore
+  "ignores": [
+    "node_modules/**",
+    ".git/**",
+    ".agent-os/**",
+    "CLAUDE.md"
+  ],
+  
+  // markdownlint configuration
+  "config": {
+    // Disable line length rule (MD013) for README files
+    // README files often need long lines for URLs, badges, and code examples
+    "MD013": false,
+    
+    // Allow duplicate headings (MD024) in different sections
+    "MD024": {
+      "siblings_only": true
+    },
+    
+    // Allow HTML in markdown (useful for badges and advanced formatting)
+    "MD033": false,
+    
+    // Allow bare URLs (common in documentation)
+    "MD034": false
+  }
+}
