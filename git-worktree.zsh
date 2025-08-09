@@ -4,8 +4,9 @@
 # A comprehensive zsh function suite for managing git worktrees
 # Version: 1.0.0
 
-# gwt-create: Create a new git worktree with branch
+# gwt-create: Create a new git worktree with branch in organized folder structure
 # Usage: gwt-create <branch-name> [target-directory]
+# Creates worktree in "{project-name}-worktrees/{branch-name}" pattern
 function gwt-create() {
     local branch_name=""
     local target_dir=""
@@ -142,7 +143,7 @@ Examples:
   gwt-create bugfix-123 bugfix
   gwt-create --dry-run test-branch
 
-The worktree will be created alongside the main repository directory.
+The worktree will be created in a dedicated "{project-name}-worktrees/" folder.
 EOF
 }
 
@@ -379,7 +380,8 @@ function _gwt_check_directory_conflict() {
     return 0
 }
 
-# Resolve the target directory path for worktree creation
+# Resolve the target directory path for worktree creation in organized structure
+# Creates path in pattern: "{parent-dir}/{project-name}-worktrees/{branch-name}"
 function _gwt_resolve_target_directory() {
     local branch_name="$1"
     local custom_target="$2"
@@ -388,7 +390,7 @@ function _gwt_resolve_target_directory() {
         return 1
     fi
     
-    # Get the parent directory of the current git repository
+    # Get the current project information
     local repo_root
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
     
@@ -397,8 +399,14 @@ function _gwt_resolve_target_directory() {
         return 1
     fi
     
+    # Extract project name and parent directory
+    local project_name
+    project_name=$(basename "$repo_root")
     local parent_dir
     parent_dir=$(dirname "$repo_root")
+    
+    # Construct worktree container path
+    local worktree_container="${parent_dir}/${project_name}-worktrees"
     
     # Determine directory name
     local dir_name
@@ -415,8 +423,8 @@ function _gwt_resolve_target_directory() {
         dir_name=$(_gwt_sanitize_directory_name "$branch_name")
     fi
     
-    # Construct full target path as sibling to main repo
-    local target_path="${parent_dir}/${dir_name}"
+    # Construct final worktree path within the organized structure
+    local target_path="${worktree_container}/${dir_name}"
     
     echo "$target_path"
     return 0
@@ -436,6 +444,20 @@ function _gwt_create_worktree() {
     # Check for directory conflicts before proceeding
     if ! _gwt_check_directory_conflict "$target_path"; then
         return 1
+    fi
+    
+    # Ensure worktree container directory exists
+    local container_dir
+    container_dir=$(dirname "$target_path")
+    
+    if [[ ! -d "$container_dir" ]]; then
+        _gwt_show_progress "Creating worktree container directory '$container_dir'..."
+        if ! mkdir -p "$container_dir" 2>/dev/null; then
+            _gwt_error "Failed to create worktree container directory '$container_dir'"
+            echo "Possible causes: Filesystem permissions or insufficient disk space" >&2
+            echo "Suggestion: Check directory permissions or try creating the directory manually" >&2
+            return 1
+        fi
     fi
     
     # Execute git worktree add based on strategy
@@ -555,24 +577,27 @@ function _gwt_cleanup_failed_worktree() {
 # Task 4.7: Filesystem validation functions
 function _gwt_validate_filesystem_access() {
     local target_path="$1"
-    local parent_dir
+    local container_dir
+    local container_parent_dir
     
     if [[ -z "$target_path" ]]; then
         return 1
     fi
     
-    parent_dir=$(dirname "$target_path")
+    container_dir=$(dirname "$target_path")
+    container_parent_dir=$(dirname "$container_dir")
     
-    # Check if parent directory exists and is writable
-    if [[ ! -d "$parent_dir" ]]; then
-        _gwt_error "Parent directory '$parent_dir' does not exist"
-        echo "Suggestion: Create the parent directory first or choose a different location" >&2
+    # Check if container parent directory exists and is writable
+    # We'll create the container directory if it doesn't exist
+    if [[ ! -d "$container_parent_dir" ]]; then
+        _gwt_error "Container parent directory '$container_parent_dir' does not exist"
+        echo "Suggestion: Ensure you're in a valid git repository with accessible parent directory" >&2
         return 1
     fi
     
-    if [[ ! -w "$parent_dir" ]]; then
-        _gwt_error "No write permission for parent directory '$parent_dir'"
-        echo "Suggestion: Check directory permissions with 'ls -la \"$parent_dir\"' and adjust if needed" >&2
+    if [[ ! -w "$container_parent_dir" ]]; then
+        _gwt_error "No write permission for container parent directory '$container_parent_dir'"
+        echo "Suggestion: Check directory permissions with 'ls -la \"$container_parent_dir\"' and adjust if needed" >&2
         return 1
     fi
     
@@ -587,14 +612,16 @@ function _gwt_check_disk_space() {
         return 1
     fi
     
-    local parent_dir
-    parent_dir=$(dirname "$target_path")
+    local container_dir
+    local container_parent_dir
+    container_dir=$(dirname "$target_path")
+    container_parent_dir=$(dirname "$container_dir")
     
     # Get available disk space (cross-platform approach)
     local available_space
     if command -v df >/dev/null 2>&1; then
         # Use df to get available space in MB
-        available_space=$(df -m "$parent_dir" 2>/dev/null | awk 'NR==2 {print $4}')
+        available_space=$(df -m "$container_parent_dir" 2>/dev/null | awk 'NR==2 {print $4}')
         
         if [[ -n "$available_space" && "$available_space" =~ ^[0-9]+$ ]]; then
             if [[ "$available_space" -lt "$min_space_mb" ]]; then

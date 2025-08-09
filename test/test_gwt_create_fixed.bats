@@ -341,25 +341,25 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "_gwt_resolve_target_directory returns correct sibling path" {
-    # Should resolve to parent directory with branch name
+@test "_gwt_resolve_target_directory returns correct organized path" {
+    # Should resolve to worktree container directory with branch name
     run _gwt_resolve_target_directory "feature/test-branch"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /feature-test-branch$ ]]
+    [[ "$output" =~ /test-repo-worktrees/feature-test-branch$ ]]
 }
 
 @test "_gwt_resolve_target_directory handles custom target directory" {
-    # Should use custom directory name but still resolve to sibling location
+    # Should use custom directory name but still resolve to organized structure
     run _gwt_resolve_target_directory "test-branch" "custom-dir"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /custom-dir$ ]]
+    [[ "$output" =~ /test-repo-worktrees/custom-dir$ ]]
 }
 
 @test "_gwt_resolve_target_directory handles relative paths" {
-    # Test that relative paths are properly resolved
+    # Test that relative paths are properly resolved within organized structure
     run _gwt_resolve_target_directory "test-branch" "../custom-dir"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /custom-dir$ ]]
+    [[ "$output" =~ /test-repo-worktrees/custom-dir$ ]]
 }
 
 # Tests for worktree creation with new and existing branches
@@ -887,16 +887,16 @@ teardown() {
 # ============================================================================
 
 @test "E2E: Workflow with custom target directory specification" {
-    # Test complete workflow with user-specified target directory
+    # Test complete workflow with user-specified target directory in organized structure
     local branch_name="feature/custom-target"
     local custom_dir="my-custom-worktree"
-    local expected_dir="../my-custom-worktree"
+    local expected_dir="../test-repo-worktrees/my-custom-worktree"
     
     # Execute the complete workflow with custom directory
     run gwt-create "$branch_name" "$custom_dir"
     [ "$status" -eq 0 ]
     
-    # Verify custom directory was created
+    # Verify custom directory was created in organized structure
     [ -d "$expected_dir" ]
     
     # Verify branch was created
