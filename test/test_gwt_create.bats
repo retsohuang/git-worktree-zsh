@@ -341,25 +341,25 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "_gwt_resolve_target_directory returns correct sibling path" {
-    # Should resolve to parent directory with branch name
+@test "_gwt_resolve_target_directory returns correct organized path" {
+    # Should resolve to worktree container directory with branch name
     run _gwt_resolve_target_directory "feature/test-branch"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /feature-test-branch$ ]]
+    [[ "$output" =~ /test-repo-worktrees/feature-test-branch$ ]]
 }
 
 @test "_gwt_resolve_target_directory handles custom target directory" {
-    # Should use custom directory name but still resolve to sibling location
+    # Should use custom directory name but still resolve to organized structure
     run _gwt_resolve_target_directory "test-branch" "custom-dir"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /custom-dir$ ]]
+    [[ "$output" =~ /test-repo-worktrees/custom-dir$ ]]
 }
 
 @test "_gwt_resolve_target_directory handles relative paths" {
-    # Test that relative paths are properly resolved
+    # Test that relative paths are properly resolved within organized structure
     run _gwt_resolve_target_directory "test-branch" "../custom-dir"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /custom-dir$ ]]
+    [[ "$output" =~ /test-repo-worktrees/custom-dir$ ]]
 }
 
 # Tests for worktree creation with new and existing branches
@@ -804,69 +804,6 @@ teardown() {
 # Automatic Directory Navigation Tests (Task 5.2)
 # ============================================================================
 
-@test "Navigation: Automatic directory change after successful worktree creation" {
-    # Test that the function includes proper navigation logic
-    local branch_name="feature/navigation-test"
-    local expected_dir="../feature-navigation-test"
-    
-    # Execute the function
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify navigation message is shown
-    [[ "$output" =~ "Navigating to worktree directory" ]]
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: Graceful handling of navigation failure" {
-    # Test behavior when navigation fails (e.g., directory removed after creation)
-    local branch_name="feature/nav-fail-test"
-    local expected_dir="../feature-nav-fail-test"
-    
-    # This is a conceptual test - actual navigation failure is hard to simulate
-    # The implementation should show a warning if cd fails
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created successfully
-    [ -d "$expected_dir" ]
-    
-    # Verify success even if navigation conceptually failed
-    [[ "$output" =~ "Successfully created" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: No navigation attempt during dry-run mode" {
-    # Test that dry-run mode doesn't attempt navigation
-    local branch_name="feature/dry-run-nav-test"
-    
-    # Execute dry-run
-    run gwt-create --dry-run "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify dry-run message but no navigation messages
-    [[ "$output" =~ "Dry run:" ]]
-    [[ ! "$output" =~ "Navigating to worktree directory" ]]
-    [[ ! "$output" =~ "Successfully created and navigated" ]]
-    
-    # Verify no actual changes were made
-    [ ! -d "../feature-dry-run-nav-test" ]
-}
-
 @test "E2E: Complete workflow for remote branch tracking" {
     # Create a second repository to act as remote
     cd "$TEST_TEMP_DIR"
@@ -949,80 +886,17 @@ teardown() {
 # Automatic Directory Navigation Tests (Task 5.2)
 # ============================================================================
 
-@test "Navigation: Automatic directory change after successful worktree creation" {
-    # Test that the function includes proper navigation logic
-    local branch_name="feature/navigation-test"
-    local expected_dir="../feature-navigation-test"
-    
-    # Execute the function
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify navigation message is shown
-    [[ "$output" =~ "Navigating to worktree directory" ]]
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: Graceful handling of navigation failure" {
-    # Test behavior when navigation fails (e.g., directory removed after creation)
-    local branch_name="feature/nav-fail-test"
-    local expected_dir="../feature-nav-fail-test"
-    
-    # This is a conceptual test - actual navigation failure is hard to simulate
-    # The implementation should show a warning if cd fails
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created successfully
-    [ -d "$expected_dir" ]
-    
-    # Verify success even if navigation conceptually failed
-    [[ "$output" =~ "Successfully created" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: No navigation attempt during dry-run mode" {
-    # Test that dry-run mode doesn't attempt navigation
-    local branch_name="feature/dry-run-nav-test"
-    
-    # Execute dry-run
-    run gwt-create --dry-run "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify dry-run message but no navigation messages
-    [[ "$output" =~ "Dry run:" ]]
-    [[ ! "$output" =~ "Navigating to worktree directory" ]]
-    [[ ! "$output" =~ "Successfully created and navigated" ]]
-    
-    # Verify no actual changes were made
-    [ ! -d "../feature-dry-run-nav-test" ]
-}
-
 @test "E2E: Workflow with custom target directory specification" {
-    # Test complete workflow with user-specified target directory
+    # Test complete workflow with user-specified target directory in organized structure
     local branch_name="feature/custom-target"
     local custom_dir="my-custom-worktree"
-    local expected_dir="../my-custom-worktree"
+    local expected_dir="../test-repo-worktrees/my-custom-worktree"
     
     # Execute the complete workflow with custom directory
     run gwt-create "$branch_name" "$custom_dir"
     [ "$status" -eq 0 ]
     
-    # Verify custom directory was created
+    # Verify custom directory was created in organized structure
     [ -d "$expected_dir" ]
     
     # Verify branch was created
@@ -1044,69 +918,6 @@ teardown() {
 # ============================================================================
 # Automatic Directory Navigation Tests (Task 5.2)
 # ============================================================================
-
-@test "Navigation: Automatic directory change after successful worktree creation" {
-    # Test that the function includes proper navigation logic
-    local branch_name="feature/navigation-test"
-    local expected_dir="../feature-navigation-test"
-    
-    # Execute the function
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify navigation message is shown
-    [[ "$output" =~ "Navigating to worktree directory" ]]
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: Graceful handling of navigation failure" {
-    # Test behavior when navigation fails (e.g., directory removed after creation)
-    local branch_name="feature/nav-fail-test"
-    local expected_dir="../feature-nav-fail-test"
-    
-    # This is a conceptual test - actual navigation failure is hard to simulate
-    # The implementation should show a warning if cd fails
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created successfully
-    [ -d "$expected_dir" ]
-    
-    # Verify success even if navigation conceptually failed
-    [[ "$output" =~ "Successfully created" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: No navigation attempt during dry-run mode" {
-    # Test that dry-run mode doesn't attempt navigation
-    local branch_name="feature/dry-run-nav-test"
-    
-    # Execute dry-run
-    run gwt-create --dry-run "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify dry-run message but no navigation messages
-    [[ "$output" =~ "Dry run:" ]]
-    [[ ! "$output" =~ "Navigating to worktree directory" ]]
-    [[ ! "$output" =~ "Successfully created and navigated" ]]
-    
-    # Verify no actual changes were made
-    [ ! -d "../feature-dry-run-nav-test" ]
-}
 
 @test "E2E: Multiple worktree creation and management workflow" {
     # Test creating multiple worktrees and verify they don't interfere
@@ -1195,69 +1006,6 @@ teardown() {
 # Automatic Directory Navigation Tests (Task 5.2)
 # ============================================================================
 
-@test "Navigation: Automatic directory change after successful worktree creation" {
-    # Test that the function includes proper navigation logic
-    local branch_name="feature/navigation-test"
-    local expected_dir="../feature-navigation-test"
-    
-    # Execute the function
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify navigation message is shown
-    [[ "$output" =~ "Navigating to worktree directory" ]]
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: Graceful handling of navigation failure" {
-    # Test behavior when navigation fails (e.g., directory removed after creation)
-    local branch_name="feature/nav-fail-test"
-    local expected_dir="../feature-nav-fail-test"
-    
-    # This is a conceptual test - actual navigation failure is hard to simulate
-    # The implementation should show a warning if cd fails
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created successfully
-    [ -d "$expected_dir" ]
-    
-    # Verify success even if navigation conceptually failed
-    [[ "$output" =~ "Successfully created" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: No navigation attempt during dry-run mode" {
-    # Test that dry-run mode doesn't attempt navigation
-    local branch_name="feature/dry-run-nav-test"
-    
-    # Execute dry-run
-    run gwt-create --dry-run "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify dry-run message but no navigation messages
-    [[ "$output" =~ "Dry run:" ]]
-    [[ ! "$output" =~ "Navigating to worktree directory" ]]
-    [[ ! "$output" =~ "Successfully created and navigated" ]]
-    
-    # Verify no actual changes were made
-    [ ! -d "../feature-dry-run-nav-test" ]
-}
-
 @test "E2E: Performance validation for local operations" {
     # Test that local operations complete within performance requirements (< 2 seconds)
     local branch_name="feature/performance-test-local"
@@ -1286,69 +1034,6 @@ teardown() {
 # ============================================================================
 # Automatic Directory Navigation Tests (Task 5.2)
 # ============================================================================
-
-@test "Navigation: Automatic directory change after successful worktree creation" {
-    # Test that the function includes proper navigation logic
-    local branch_name="feature/navigation-test"
-    local expected_dir="../feature-navigation-test"
-    
-    # Execute the function
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify navigation message is shown
-    [[ "$output" =~ "Navigating to worktree directory" ]]
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: Graceful handling of navigation failure" {
-    # Test behavior when navigation fails (e.g., directory removed after creation)
-    local branch_name="feature/nav-fail-test"
-    local expected_dir="../feature-nav-fail-test"
-    
-    # This is a conceptual test - actual navigation failure is hard to simulate
-    # The implementation should show a warning if cd fails
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created successfully
-    [ -d "$expected_dir" ]
-    
-    # Verify success even if navigation conceptually failed
-    [[ "$output" =~ "Successfully created" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: No navigation attempt during dry-run mode" {
-    # Test that dry-run mode doesn't attempt navigation
-    local branch_name="feature/dry-run-nav-test"
-    
-    # Execute dry-run
-    run gwt-create --dry-run "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify dry-run message but no navigation messages
-    [[ "$output" =~ "Dry run:" ]]
-    [[ ! "$output" =~ "Navigating to worktree directory" ]]
-    [[ ! "$output" =~ "Successfully created and navigated" ]]
-    
-    # Verify no actual changes were made
-    [ ! -d "../feature-dry-run-nav-test" ]
-}
 
 @test "E2E: Complete dry-run workflow validation" {
     # Test that dry-run mode provides accurate preview without making changes
@@ -1384,72 +1069,6 @@ teardown() {
 
 # ============================================================================
 # Automatic Directory Navigation Tests (Task 5.2)
-# ============================================================================
-
-@test "Navigation: Automatic directory change after successful worktree creation" {
-    # Test that the function includes proper navigation logic
-    local branch_name="feature/navigation-test"
-    local expected_dir="../feature-navigation-test"
-    
-    # Execute the function
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify navigation message is shown
-    [[ "$output" =~ "Navigating to worktree directory" ]]
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: Graceful handling of navigation failure" {
-    # Test behavior when navigation fails (e.g., directory removed after creation)
-    local branch_name="feature/nav-fail-test"
-    local expected_dir="../feature-nav-fail-test"
-    
-    # This is a conceptual test - actual navigation failure is hard to simulate
-    # The implementation should show a warning if cd fails
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created successfully
-    [ -d "$expected_dir" ]
-    
-    # Verify success even if navigation conceptually failed
-    [[ "$output" =~ "Successfully created" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
-
-@test "Navigation: No navigation attempt during dry-run mode" {
-    # Test that dry-run mode doesn't attempt navigation
-    local branch_name="feature/dry-run-nav-test"
-    
-    # Execute dry-run
-    run gwt-create --dry-run "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify dry-run message but no navigation messages
-    [[ "$output" =~ "Dry run:" ]]
-    [[ ! "$output" =~ "Navigating to worktree directory" ]]
-    [[ ! "$output" =~ "Successfully created and navigated" ]]
-    
-    # Verify no actual changes were made
-    [ ! -d "../feature-dry-run-nav-test" ]
-}
-# ============================================================================
-# Zsh Tab Completion System Integration Tests (Task 5.3)
 # ============================================================================
 
 @test "Completion: _gwt_create function exists and is callable" {
