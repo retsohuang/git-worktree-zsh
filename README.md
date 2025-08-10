@@ -587,17 +587,7 @@ export GWT_DEBUG=1
 
 ### Roadmap
 
-#### Version 1.1.0 (Planned)
-
-- 🔄 Additional worktree management functions (`gwt-remove`, `gwt-list`)
-- 🔄 Configuration file support
-- 🔄 Integration with popular git workflows (git-flow, GitHub Flow)
-
-#### Version 2.0.0 (Future)
-
-- 🔄 GUI integration options
-- 🔄 Advanced worktree synchronization features
-- 🔄 Plugin architecture for extensibility
+For detailed roadmap information, see [.agent-os/product/roadmap.md](.agent-os/product/roadmap.md).
 
 ## License
 
