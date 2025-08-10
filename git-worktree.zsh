@@ -380,8 +380,7 @@ function _gwt_check_directory_conflict() {
     return 0
 }
 
-# Resolve the target directory path for worktree creation in organized structure
-# Creates path in pattern: "{parent-dir}/{project-name}-worktrees/{branch-name}"
+# Resolve the target directory path for worktree creation
 function _gwt_resolve_target_directory() {
     local branch_name="$1"
     local custom_target="$2"
@@ -399,32 +398,20 @@ function _gwt_resolve_target_directory() {
         return 1
     fi
     
-    # Extract project name and parent directory
-    local project_name
-    project_name=$(basename "$repo_root")
     local parent_dir
     parent_dir=$(dirname "$repo_root")
-    
-    # Construct worktree container path
-    local worktree_container="${parent_dir}/${project_name}-worktrees"
     
     # Determine directory name
     local dir_name
     if [[ -n "$custom_target" ]]; then
-        # Handle relative paths in custom target
-        if [[ "$custom_target" =~ ^\.\./ ]]; then
-            # Remove leading ../ and use the rest as directory name
-            dir_name="${custom_target#../}"
-        else
-            dir_name="$custom_target"
-        fi
+        dir_name="$custom_target"
     else
         # Sanitize branch name for directory use
         dir_name=$(_gwt_sanitize_directory_name "$branch_name")
     fi
     
-    # Construct final worktree path within the organized structure
-    local target_path="${worktree_container}/${dir_name}"
+    # Construct final worktree path
+    local target_path="${parent_dir}/${dir_name}"
     
     echo "$target_path"
     return 0
@@ -745,7 +732,7 @@ function _gwt_complete_local_branches() {
 }
 
 # Register the completion function
-if [[ -n "$ZSH_VERSION" ]]; then
-    # Only register if we're in zsh
+if [[ -n "$ZSH_VERSION" ]] && command -v compdef >/dev/null 2>&1; then
+    # Only register if we're in zsh and compdef is available
     compdef _gwt_create gwt-create
 fi

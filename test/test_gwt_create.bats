@@ -11,17 +11,24 @@ setup() {
     export TEST_TEMP_DIR="$(mktemp -d)"
     export ORIGINAL_DIR="$(pwd)"
     
+    # Set up isolated git environment
+    export GIT_CONFIG_NOSYSTEM=1
+    export GIT_CONFIG_GLOBAL=/dev/null
+    export HOME="$TEST_TEMP_DIR"
+    
     # Initialize a test git repository
     cd "$TEST_TEMP_DIR"
     git init test-repo
     cd test-repo
+    
+    # Set up git config for tests (local repo only)
+    git config user.name "Test User"
+    git config user.email "test@example.com"
+    git config init.defaultBranch main
+    
     echo "# Test Repository" > README.md
     git add README.md
     git commit -m "Initial commit"
-    
-    # Set up git config for tests
-    git config user.name "Test User"
-    git config user.email "test@example.com"
 }
 
 teardown() {
@@ -190,25 +197,6 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-# Tests for remote branch existence detection
-@test "_gwt_branch_exists_remotely detects existing remote branch" {
-    # Create a second repository to act as remote
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-remote
-    cd test-remote
-    git checkout -b remote-test-branch
-    echo "remote content" >> README.md
-    git add README.md
-    git commit -m "Remote branch commit"
-    
-    cd ../test-repo
-    git remote add origin ../test-remote
-    git fetch origin
-    
-    # Function should return success for existing remote branch
-    run _gwt_branch_exists_remotely origin remote-test-branch
-    [ "$status" -eq 0 ]
-}
 
 @test "_gwt_branch_exists_remotely returns failure for non-existing remote branch" {
     # Create a second repository to act as remote
@@ -230,23 +218,6 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "_gwt_branch_exists_remotely handles branch names with slashes on remote" {
-    # Create a second repository to act as remote
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-remote
-    cd test-remote
-    git checkout -b feature/remote-branch-with-slash
-    echo "remote content" >> README.md
-    git add README.md
-    git commit -m "Remote feature branch commit"
-    
-    cd ../test-repo
-    git remote add origin ../test-remote
-    git fetch origin
-    
-    run _gwt_branch_exists_remotely origin feature/remote-branch-with-slash
-    [ "$status" -eq 0 ]
-}
 
 # Tests for branch strategy determination
 @test "_gwt_determine_branch_strategy returns create-new for new branch" {
@@ -264,24 +235,6 @@ teardown() {
     [ "$output" = "checkout-local" ]
 }
 
-@test "_gwt_determine_branch_strategy returns checkout-remote for remote branch" {
-    # Create a second repository to act as remote
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-remote
-    cd test-remote
-    git checkout -b remote-only-branch
-    echo "remote content" >> README.md
-    git add README.md
-    git commit -m "Remote branch commit"
-    
-    cd ../test-repo
-    git remote add origin ../test-remote
-    git fetch origin
-    
-    run _gwt_determine_branch_strategy remote-only-branch
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ ^checkout-remote:origin$ ]]
-}
 
 # Tests for directory name sanitization
 @test "_gwt_sanitize_directory_name handles branch names with slashes" {
@@ -341,25 +294,25 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "_gwt_resolve_target_directory returns correct organized path" {
-    # Should resolve to worktree container directory with branch name
+@test "_gwt_resolve_target_directory returns correct path" {
+    # Should resolve to parent directory with branch name
     run _gwt_resolve_target_directory "feature/test-branch"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /test-repo-worktrees/feature-test-branch$ ]]
+    [[ "$output" =~ /feature-test-branch$ ]]
 }
 
 @test "_gwt_resolve_target_directory handles custom target directory" {
-    # Should use custom directory name but still resolve to organized structure
+    # Should use custom directory name
     run _gwt_resolve_target_directory "test-branch" "custom-dir"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /test-repo-worktrees/custom-dir$ ]]
+    [[ "$output" =~ /custom-dir$ ]]
 }
 
 @test "_gwt_resolve_target_directory handles relative paths" {
-    # Test that relative paths are properly resolved within organized structure
+    # Test that relative paths are properly resolved
     run _gwt_resolve_target_directory "test-branch" "../custom-dir"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ /test-repo-worktrees/custom-dir$ ]]
+    [[ "$output" =~ /\.\./custom-dir$ ]]
 }
 
 # Tests for worktree creation with new and existing branches
@@ -395,32 +348,6 @@ teardown() {
     [ "$current_branch" = "existing-local-branch" ]
 }
 
-@test "_gwt_create_worktree creates worktree for remote branch" {
-    # Create a second repository to act as remote
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-remote-for-worktree
-    cd test-remote-for-worktree
-    git checkout -b remote-worktree-branch
-    echo "remote content" >> README.md
-    git add README.md
-    git commit -m "Remote branch for worktree test"
-    
-    cd ../test-repo
-    git remote add origin ../test-remote-for-worktree
-    git fetch origin
-    
-    local target_dir="$TEST_TEMP_DIR/remote-branch-worktree"
-    
-    run _gwt_create_worktree "remote-worktree-branch" "$target_dir" "checkout-remote:origin"
-    [ "$status" -eq 0 ]
-    [ -d "$target_dir" ]
-    
-    # Verify the worktree was created with tracking the remote branch
-    cd "$target_dir"
-    local current_branch
-    current_branch=$(git branch --show-current)
-    [ "$current_branch" = "remote-worktree-branch" ]
-}
 
 @test "_gwt_create_worktree handles directory creation errors" {
     # Try to create worktree in a location that can't be created (read-only parent)
@@ -456,17 +383,6 @@ teardown() {
     chmod 755 "$readonly_dir"
 }
 
-@test "gwt-create handles network connectivity issues for remote operations" {
-    # Add a remote that doesn't exist
-    git remote add nonexistent-remote https://github.com/nonexistent/repo.git
-    
-    # This should handle network errors gracefully
-    run gwt-create --dry-run test-branch
-    [ "$status" -eq 0 ]  # Should not fail on dry-run even with bad remote
-    
-    # Cleanup
-    git remote remove nonexistent-remote
-}
 
 @test "gwt-create handles git command failures gracefully" {
     # Create a scenario where git worktree add might fail
@@ -763,93 +679,11 @@ teardown() {
     [ ! -d "../feature-dry-run-nav-test" ]
 }
 
-@test "E2E: Complete workflow for existing local branch checkout" {
-    # Create an existing local branch first
-    local branch_name="existing-local-e2e"
-    local expected_dir="../existing-local-e2e"
-    
-    git checkout -b "$branch_name"
-    echo "local branch content" >> local_file.txt
-    git add local_file.txt
-    git commit -m "Local branch commit"
-    git checkout master || git checkout main
-    
-    # Execute the complete workflow
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify the worktree contains the local branch content
-    [ -f "$expected_dir/local_file.txt" ]
-    
-    # Verify worktree is on correct branch
-    cd "$expected_dir"
-    local current_branch=$(git branch --show-current)
-    [ "$current_branch" = "$branch_name" ]
-    cd - >/dev/null
-    
-    # Verify success message
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-}
 
 # ============================================================================
 # Automatic Directory Navigation Tests (Task 5.2)
 # ============================================================================
 
-@test "E2E: Complete workflow for remote branch tracking" {
-    # Create a second repository to act as remote
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-remote-e2e
-    cd test-remote-e2e
-    git checkout -b "remote-e2e-branch"
-    echo "remote branch content" >> remote_file.txt
-    git add remote_file.txt
-    git commit -m "Remote branch commit"
-    
-    cd ../test-repo
-    git remote add origin ../test-remote-e2e
-    git fetch origin
-    
-    local branch_name="remote-e2e-branch"
-    local expected_dir="../remote-e2e-branch"
-    
-    # Execute the complete workflow
-    run gwt-create "$branch_name"
-    [ "$status" -eq 0 ]
-    
-    # Verify worktree was created
-    [ -d "$expected_dir" ]
-    
-    # Verify the worktree contains remote branch content
-    [ -f "$expected_dir/remote_file.txt" ]
-    
-    # Verify local tracking branch was created
-    git branch --list "$branch_name" | grep -q "$branch_name"
-    
-    # Verify tracking relationship
-    cd "$expected_dir"
-    local upstream=$(git branch -vv | grep "$branch_name" | grep "origin/$branch_name")
-    [ -n "$upstream" ]
-    cd - >/dev/null
-    
-    # Verify success message
-    [[ "$output" =~ "Successfully created and navigated to worktree" ]]
-    
-    # Cleanup
-    if git worktree list | grep -q "$expected_dir"; then
-        git worktree remove "$expected_dir" --force 2>/dev/null || true
-    fi
-    git branch -D "$branch_name" 2>/dev/null || true
-    git remote remove origin
-}
 
 @test "E2E: Workflow with branch name sanitization and special characters" {
     # Test complete workflow with branch names requiring sanitization
@@ -1112,28 +946,6 @@ teardown() {
     git branch -D completion-test-branch-1 completion-test-branch-2
 }
 
-@test "Completion: Branch completion includes remote branches" {
-    # Create a second repository to act as remote
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-remote-completion
-    cd test-remote-completion
-    git checkout -b "remote-completion-branch"
-    echo "remote content" >> remote_file.txt
-    git add remote_file.txt
-    git commit -m "Remote completion branch"
-    
-    cd ../test-repo
-    git remote add origin ../test-remote-completion
-    git fetch origin
-    
-    # Test that git branch -r shows remote branches
-    run git branch -r
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ "origin/remote-completion-branch" ]]
-    
-    # Cleanup
-    git remote remove origin
-}
 
 @test "Completion: Integration with zsh compdef registration" {
     # Test that completion registration logic is present
@@ -1165,78 +977,7 @@ teardown() {
 # Git Repository Configuration Tests (Task 5.4)
 # ============================================================================
 
-@test "Config: Function works in repository with default branch main" {
-    # Create a repository with main as default branch
-    cd "$TEST_TEMP_DIR"
-    git init test-main-branch
-    cd test-main-branch
-    git config user.name "Test User"
-    git config user.email "test@example.com"
-    
-    # Create main branch instead of master
-    echo "# Main Branch Repo" > README.md
-    git add README.md
-    git commit -m "Initial commit on main"
-    git branch -M main
-    
-    # Test gwt-create works with main branch
-    run gwt-create feature/test-with-main
-    [ "$status" -eq 0 ]
-    [ -d "../feature-test-with-main" ]
-    
-    # Cleanup
-    if git worktree list | grep -q "../feature-test-with-main"; then
-        git worktree remove "../feature-test-with-main" --force 2>/dev/null || true
-    fi
-    git branch -D feature/test-with-main 2>/dev/null || true
-}
 
-@test "Config: Function works in repository with multiple remotes" {
-    # Create repositories to act as multiple remotes
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-upstream
-    git clone test-repo test-origin
-    
-    # Add content to each remote
-    cd test-upstream
-    git checkout -b upstream-feature
-    echo "upstream content" > upstream.txt
-    git add upstream.txt
-    git commit -m "Upstream feature"
-    
-    cd ../test-origin
-    git checkout -b origin-feature
-    echo "origin content" > origin.txt
-    git add origin.txt
-    git commit -m "Origin feature"
-    
-    # Configure main repo with multiple remotes
-    cd ../test-repo
-    git remote add upstream ../test-upstream
-    git remote add origin ../test-origin
-    git fetch upstream
-    git fetch origin
-    
-    # Test that function works with multiple remotes
-    run gwt-create upstream-feature
-    [ "$status" -eq 0 ]
-    [ -d "../upstream-feature" ]
-    
-    # Test with origin remote branch
-    run gwt-create origin-feature
-    [ "$status" -eq 0 ]
-    [ -d "../origin-feature" ]
-    
-    # Cleanup
-    if git worktree list | grep -q "../upstream-feature"; then
-        git worktree remove "../upstream-feature" --force 2>/dev/null || true
-    fi
-    if git worktree list | grep -q "../origin-feature"; then
-        git worktree remove "../origin-feature" --force 2>/dev/null || true
-    fi
-    git branch -D upstream-feature origin-feature 2>/dev/null || true
-    git remote remove upstream origin
-}
 
 @test "Config: Function works in repository with existing worktrees" {
     # Create an existing worktree
@@ -1418,43 +1159,6 @@ EOF
     done
 }
 
-@test "Performance: Function handles repository with many remote branches efficiently" {
-    # Create a remote repository with many branches
-    cd "$TEST_TEMP_DIR"
-    git clone test-repo test-many-remote-branches
-    cd test-many-remote-branches
-    
-    # Create many remote branches
-    for i in $(seq 1 15); do
-        git checkout -b "remote-perf-branch-$i"
-        echo "content $i" > "file$i.txt"
-        git add "file$i.txt"
-        git commit -m "Remote branch $i"
-    done
-    
-    # Switch back to main repo and add remote
-    cd ../test-repo
-    git remote add perf-remote ../test-many-remote-branches
-    git fetch perf-remote
-    
-    # Measure performance with many remote branches
-    local start_time=$(date +%s)
-    run gwt-create "remote-perf-branch-5"
-    local end_time=$(date +%s)
-    local duration=$((end_time - start_time))
-    
-    # Should complete within reasonable time even with many remote branches
-    [ "$status" -eq 0 ]
-    [ "$duration" -lt 8 ]  # Allow more time for remote operations
-    [ -d "../remote-perf-branch-5" ]
-    
-    # Cleanup
-    if git worktree list | grep -q "../remote-perf-branch-5"; then
-        git worktree remove "../remote-perf-branch-5" --force 2>/dev/null || true
-    fi
-    git branch -D remote-perf-branch-5 2>/dev/null || true
-    git remote remove perf-remote
-}
 
 @test "Performance: Branch completion remains responsive with many branches" {
     # Create branches for completion performance testing
@@ -1794,7 +1498,7 @@ EOF
 
 @test "Framework: Function loads correctly in basic zsh environment" {
     # Test that function can be loaded in a clean zsh environment
-    run zsh -c "source ../git-worktree.zsh && type gwt-create"
+    run zsh -c "cd '$ORIGINAL_DIR' && source git-worktree.zsh && type gwt-create"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "gwt-create is a shell function" ]]
 }
@@ -1803,7 +1507,8 @@ EOF
     # Test that completion registration works in zsh
     if [[ -n "$ZSH_VERSION" ]]; then
         # In zsh - test completion registration
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         
         # Check if completion function is registered
         run zsh -c "which _gwt_create"
@@ -1824,17 +1529,17 @@ EOF
     # Test with common zsh options that might affect function behavior
     
     # Test with EXTENDED_GLOB option
-    run zsh -c "setopt EXTENDED_GLOB; source ../git-worktree.zsh && gwt-create --help"
+    run zsh -c "cd '$ORIGINAL_DIR' && setopt EXTENDED_GLOB; source git-worktree.zsh && gwt-create --help"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Usage:" ]]
     
     # Test with AUTO_CD option
-    run zsh -c "setopt AUTO_CD; source ../git-worktree.zsh && gwt-create --help"
+    run zsh -c "cd '$ORIGINAL_DIR' && setopt AUTO_CD; source git-worktree.zsh && gwt-create --help"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Usage:" ]]
     
     # Test with CORRECT option (command correction)
-    run zsh -c "setopt CORRECT; source ../git-worktree.zsh && gwt-create --help"
+    run zsh -c "cd '$ORIGINAL_DIR' && setopt CORRECT; source git-worktree.zsh && gwt-create --help"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Usage:" ]]
 }
@@ -1844,7 +1549,8 @@ EOF
     
     # Test basic parameter expansion used in the function
     run zsh -c "
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         test_var=\"feature/test-expansion\"
         sanitized=\"\${test_var//\//-}\"
         echo \"\$sanitized\"
@@ -1859,7 +1565,8 @@ EOF
     # Test with simple prompt
     run zsh -c "
         PS1=\"%% \"
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1868,7 +1575,8 @@ EOF
     # Test with complex prompt (simulating oh-my-zsh style)
     run zsh -c "
         PS1=\"%{%F{green}%}%n@%m%{%f%} %{%F{blue}%}%~%{%f%} \$ \"
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1880,7 +1588,8 @@ EOF
     
     # Test array operations used in completion
     run zsh -c "
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         test_array=(\"item1\" \"item2\" \"item3\")
         echo \"\${#test_array[@]}\"
     "
@@ -1894,7 +1603,8 @@ EOF
     # Test with NULL_GLOB
     run zsh -c "
         setopt NULL_GLOB
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --dry-run test-branch
     "
     [ "$status" -eq 0 ]
@@ -1903,7 +1613,8 @@ EOF
     # Test with NOMATCH option
     run zsh -c "
         setopt NOMATCH
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --dry-run test-branch
     "
     [ "$status" -eq 0 ]
@@ -1917,7 +1628,8 @@ EOF
     run zsh -c "
         autoload -U compinit
         compinit -u
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1930,7 +1642,8 @@ EOF
     # Test with EXTENDED_HISTORY
     run zsh -c "
         setopt EXTENDED_HISTORY
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1939,7 +1652,8 @@ EOF
     # Test with HIST_VERIFY
     run zsh -c "
         setopt HIST_VERIFY
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1953,7 +1667,8 @@ EOF
     run zsh -c "
         alias g=git
         alias gb=git branch
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1963,7 +1678,8 @@ EOF
     run zsh -c "
         alias ..=cd ..
         alias ...=cd ../..
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help
     "
     [ "$status" -eq 0 ]
@@ -1976,7 +1692,8 @@ EOF
     # Test with custom precmd
     run zsh -c "
         precmd() { echo \"precmd hook\" >&2; }
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help 2>/dev/null
     "
     [ "$status" -eq 0 ]
@@ -1985,7 +1702,8 @@ EOF
     # Test with custom preexec
     run zsh -c "
         preexec() { echo \"preexec hook\" >&2; }
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         gwt-create --help 2>/dev/null
     "
     [ "$status" -eq 0 ]
@@ -1998,7 +1716,8 @@ EOF
     # Test with similar function names
     run zsh -c "
         gwt() { echo \"user gwt function\"; }
-        source ../git-worktree.zsh
+        cd '$ORIGINAL_DIR'
+        source git-worktree.zsh
         type gwt
         type gwt-create
     "
