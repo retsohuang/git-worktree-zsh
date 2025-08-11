@@ -239,10 +239,11 @@ function _gwt_check_not_in_worktree() {
     fi
     
     # Additional check: verify we're not in a worktree by checking git-common-dir
+    # Only trigger if the git-dir is actually in a worktrees subdirectory
     local common_dir
     common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
     
-    if [[ -n "$common_dir" && "$git_dir" != "$common_dir" ]]; then
+    if [[ -n "$common_dir" && "$git_dir" != "$common_dir" && "$git_dir" =~ /\.git/worktrees/ ]]; then
         echo "Error: Cannot create worktree from inside another worktree" >&2
         echo "Current location appears to be a git worktree based on common-dir detection." >&2
         echo "Suggestion: Navigate to the main repository directory before creating worktrees." >&2
@@ -380,7 +381,10 @@ function _gwt_check_directory_conflict() {
     return 0
 }
 
-# Resolve the target directory path for worktree creation
+# CORE-FEATURE: Organized worktree structure
+# DO NOT REMOVE: This implements the main value proposition
+# Resolve the target directory path for worktree creation in organized structure
+# Creates path in pattern: "{parent-dir}/{project-name}-worktrees/{branch-name}"
 function _gwt_resolve_target_directory() {
     local branch_name="$1"
     local custom_target="$2"
@@ -398,20 +402,34 @@ function _gwt_resolve_target_directory() {
         return 1
     fi
     
+    # CORE-FEATURE: Extract project name and parent directory for organized structure
+    local project_name
+    project_name=$(basename "$repo_root")
     local parent_dir
     parent_dir=$(dirname "$repo_root")
+    
+    # CORE-FEATURE: Construct worktree container path - this creates the organized structure
+    # DO NOT REMOVE: This line creates the "{project-name}-worktrees" directory pattern
+    local worktree_container="${parent_dir}/${project_name}-worktrees"
     
     # Determine directory name
     local dir_name
     if [[ -n "$custom_target" ]]; then
-        dir_name="$custom_target"
+        # Handle relative paths in custom target
+        if [[ "$custom_target" =~ ^\.\./ ]]; then
+            # Remove leading ../ and use the rest as directory name
+            dir_name="${custom_target#../}"
+        else
+            dir_name="$custom_target"
+        fi
     else
         # Sanitize branch name for directory use
         dir_name=$(_gwt_sanitize_directory_name "$branch_name")
     fi
     
-    # Construct final worktree path
-    local target_path="${parent_dir}/${dir_name}"
+    # CORE-FEATURE: Construct final worktree path within the organized structure
+    # DO NOT REMOVE: This creates the organized directory structure
+    local target_path="${worktree_container}/${dir_name}"
     
     echo "$target_path"
     return 0
@@ -433,7 +451,8 @@ function _gwt_create_worktree() {
         return 1
     fi
     
-    # Ensure worktree container directory exists
+    # CORE-FEATURE: Ensure worktree container directory exists
+    # DO NOT REMOVE: This auto-creates the organized directory structure
     local container_dir
     container_dir=$(dirname "$target_path")
     

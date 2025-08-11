@@ -43,6 +43,13 @@ Git Worktree Zsh provides intelligent automation for git worktree management, al
 
 ## Features
 
+### 📁 **Organized Worktree Structure**
+
+- **Clean Organization**: Worktrees are created in dedicated "{project-name}-worktrees/" directories
+- **No Directory Clutter**: Prevents scattering worktree directories across the parent directory
+- **Intuitive Layout**: Easy to locate and manage multiple worktrees for the same project
+- **Automatic Container Creation**: Worktree container directories are created automatically as needed
+
 ### 🚀 **Intelligent Branch Detection**
 
 - **Smart Strategy Selection**: Automatically detects whether to create new branches or checkout existing ones
@@ -58,6 +65,7 @@ Git Worktree Zsh provides intelligent automation for git worktree management, al
 ### 🎯 **Developer Experience**
 
 - **One-Command Workflow**: Create and navigate to worktrees in a single command
+- **Organized Structure**: Worktrees are created in dedicated "{project-name}-worktrees/" directories
 - **Zsh Completion**: Intelligent tab completion for branch names from local and remote repositories
 - **Progress Indicators**: Color-coded output with clear status messages
 - **Dry Run Mode**: Preview operations before execution
@@ -238,13 +246,15 @@ The function automatically determines the appropriate strategy:
 
 **Directory Structure:**
 
-Worktrees are created as siblings to your main repository:
+Worktrees are organized in dedicated container directories:
 
 ```text
 parent-directory/
-├── main-repo/          # Your original repository
-├── feature-branch/     # Worktree for feature/branch
-└── hotfix-123/         # Worktree for hotfix/123
+├── main-repo/                    # Your original repository
+└── main-repo-worktrees/         # Organized worktree container
+    ├── feature-branch/          # Worktree for feature/branch
+    ├── hotfix-123/              # Worktree for hotfix/123
+    └── user-dashboard/          # Worktree for feature/user-dashboard
 ```
 
 ## Examples
@@ -258,7 +268,7 @@ gwt-create feature/user-dashboard
 
 # This creates:
 # - New branch 'feature/user-dashboard'
-# - Worktree at ~/projects/user-dashboard/
+# - Worktree at ~/projects/my-app-worktrees/user-dashboard/
 # - Automatically navigates to the new directory
 
 # Continue development
@@ -271,8 +281,8 @@ gwt-create hotfix/login-issue
 
 # Work on multiple features simultaneously
 # Main repo:     ~/projects/my-app/
-# Feature work:  ~/projects/user-dashboard/
-# Hotfix work:   ~/projects/login-issue/
+# Feature work:  ~/projects/my-app-worktrees/user-dashboard/
+# Hotfix work:   ~/projects/my-app-worktrees/login-issue/
 ```
 
 ### Code Review Workflow
@@ -303,7 +313,7 @@ gwt-create hotfix/v2.0.1
 ```bash
 # If directory already exists
 $ gwt-create feature/existing
-Error: Directory '../existing' already exists
+Error: Directory '../my-project-worktrees/existing' already exists
 Please choose a different directory name or remove the existing directory.
 
 # Solution: Use custom directory name
@@ -351,11 +361,16 @@ source ./git-worktree.zsh
 1. **Make your changes and test**:
 
 ```bash
-# Run the test suite
-bats test/
-
-# Test specific functionality
+# Quick smoke tests during development
 bats test/test_gwt_create.bats
+
+# Comprehensive testing before submitting
+./scripts/test-layered.sh
+
+# Test specific layers
+bats test/core/           # Must pass
+bats test/unit/           # Must pass
+bats test/integration/    # Should pass
 
 # Validate zsh syntax
 zsh -n git-worktree.zsh
@@ -369,25 +384,28 @@ zsh -n git-worktree.zsh
 
 ### Testing
 
-**Run all tests:**
+**Layered Testing Strategy:**
 
 ```bash
-# Full test suite
-bats test/
-
-# Specific test file
+# Quick smoke tests (recommended for development)
 bats test/test_gwt_create.bats
 
-# Verbose output
-bats --verbose-run test/
+# Comprehensive layered testing (recommended for CI/validation)
+./scripts/test-layered.sh
+
+# Individual test layers:
+bats test/core/           # Core functionality (MUST pass)
+bats test/unit/           # Unit tests (MUST pass) 
+bats test/integration/    # Integration workflows (MUST pass for release)
+bats test/environment/    # Environment tests (failures allowed)
 ```
 
 **Test categories:**
 
-- **Unit Tests**: Individual function validation
-- **Integration Tests**: End-to-end workflow testing
-- **Edge Case Tests**: Error handling and boundary conditions
-- **Performance Tests**: Large repository scenarios
+- **Core Tests (9)**: Core value proposition - organized worktree structure
+- **Unit Tests (10)**: Individual function validation in isolation
+- **Integration Tests (7)**: End-to-end workflow testing
+- **Environment Tests (9)**: Platform/environment specific features
 
 **Manual testing:**
 
@@ -476,7 +494,7 @@ gwt-create feature/my-branch
 gwt-create existing-branch-name custom-directory
 
 # Or remove the conflicting directory
-rm -rf ../conflicting-directory-name
+rm -rf ../my-project-worktrees/conflicting-directory-name
 gwt-create existing-branch-name
 ```
 
