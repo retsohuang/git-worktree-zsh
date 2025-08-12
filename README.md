@@ -23,7 +23,6 @@ A comprehensive zsh function suite for effortless git worktree management, enabl
 - [Examples](#examples)
 - [Development](#development)
   - [Contributing](#contributing)
-  - [Testing](#testing)
   - [Architecture](#architecture)
 - [Troubleshooting](#troubleshooting)
 - [Performance](#performance)
@@ -330,98 +329,25 @@ Suggestion: Check 'git worktree list' to see where the branch might be in use
 
 ### Contributing
 
-We welcome contributions! Please see our [contribution guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our comprehensive [Contributing Guide](CONTRIBUTING.md) for detailed information on:
 
-**Quick Start for Contributors:**
+- Setting up your development environment
+- Understanding our layered testing strategy
+- Following coding standards and best practices
+- Submitting pull requests
+- Feature protection guidelines
 
-1. **Fork and clone the repository**:
-
+**Quick Start:**
 ```bash
-# Fork the repository on GitHub first, then clone your fork
+# Fork, clone, and set up
 git clone https://github.com/YOUR_GITHUB_USERNAME/git-worktree-zsh.git
 cd git-worktree-zsh
+brew install bats-core  # or apt-get install bats
 
-# Or clone the main repository directly for read-only access
-# git clone https://github.com/retsohuang/git-worktree-zsh.git
-```
-
-1. **Set up development environment**:
-
-```bash
-# Install bats-core for testing (macOS)
-brew install bats-core
-
-# Or on Ubuntu/Debian
-sudo apt-get install bats
-
-# Source the functions for testing
-source ./git-worktree.zsh
-```
-
-1. **Make your changes and test**:
-
-```bash
-# Quick smoke tests during development
-bats test/test_gwt_create.bats
-
-# Comprehensive testing before submitting
+# Test your changes
 ./scripts/test-layered.sh
 
-# Test specific layers
-bats test/core/           # Must pass
-bats test/unit/           # Must pass
-bats test/integration/    # Should pass
-
-# Validate zsh syntax
-zsh -n git-worktree.zsh
-```
-
-1. **Submit a pull request**:
-
-- Follow our coding standards
-- Include tests for new functionality
-- Update documentation as needed
-
-### Testing
-
-**Layered Testing Strategy:**
-
-```bash
-# Quick smoke tests (recommended for development)
-bats test/test_gwt_create.bats
-
-# Comprehensive layered testing (recommended for CI/validation)
-./scripts/test-layered.sh
-
-# Individual test layers:
-bats test/core/           # Core functionality (MUST pass)
-bats test/unit/           # Unit tests (MUST pass) 
-bats test/integration/    # Integration workflows (MUST pass for release)
-bats test/environment/    # Environment tests (failures allowed)
-```
-
-**Test categories:**
-
-- **Core Tests (9)**: Core value proposition - organized worktree structure
-- **Unit Tests (10)**: Individual function validation in isolation
-- **Integration Tests (7)**: End-to-end workflow testing
-- **Environment Tests (9)**: Platform/environment specific features
-
-**Manual testing:**
-
-```bash
-# Test syntax without execution
-zsh -n git-worktree.zsh
-
-# Test with shellcheck (if available)
-shellcheck git-worktree.zsh
-
-# Validate documentation formatting
-markdownlint-cli2
-
-# Source and test interactively
-source git-worktree.zsh
-gwt-create --help
+# Submit your PR with tests and documentation
 ```
 
 ### Architecture
@@ -575,37 +501,9 @@ export GWT_DEBUG=1
 
 ## Changelog
 
-### Version 1.0.0 (Current)
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history, feature additions, bug fixes, and upcoming releases.
 
-**Features:**
-
-- ✅ Complete `gwt-create` function implementation
-- ✅ Intelligent branch strategy detection
-- ✅ Comprehensive error handling and validation
-- ✅ Zsh completion system integration
-- ✅ Cross-platform compatibility (macOS, Linux, WSL)
-- ✅ Color-coded output and progress indicators
-- ✅ Automatic cleanup on failure
-- ✅ Dry run mode for operation preview
-
-**Testing:**
-
-- ✅ Comprehensive test suite with bats-core
-- ✅ Unit tests for all core functions
-- ✅ Integration tests for end-to-end workflows
-- ✅ Edge case and error condition testing
-- ✅ Performance testing with large repositories
-
-**Documentation:**
-
-- ✅ Complete README with usage examples
-- ✅ Inline code documentation
-- ✅ Contributing guidelines
-- ✅ Architecture documentation
-
-### Roadmap
-
-For detailed roadmap information, see [.agent-os/product/roadmap.md](.agent-os/product/roadmap.md).
+**Current Version**: Unreleased (in development) - Full-featured git worktree management with organized structure and comprehensive layered testing.
 
 ## License
 
