@@ -198,7 +198,6 @@ git-worktree.zsh contains:
 > **✅ Complete validation workflow**: See [CLAUDE.md](CLAUDE.md) for detailed validation steps and testing commands
 
 ### Quick Reference
-### Quick Reference
 1. Run syntax check: `zsh -n git-worktree.zsh`
 2. Test manual sourcing: `source ./git-worktree.zsh && gwt-create --help`
 3. Run quick tests: `bats test/test_gwt_create.bats`
