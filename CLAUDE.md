@@ -105,6 +105,18 @@ bats test/core/ test/unit/ test/integration/
 - Use local variables to avoid namespace pollution
 - Follow zsh best practices for function naming and structure
 
+## Documentation Maintenance
+
+### Copilot Instructions Synchronization
+- **IMPORTANT**: When making any program logic or architectural changes, also update `.github/copilot-instructions.md`
+- This file provides guidance to GitHub Copilot and other AI assistants about the project structure and workflows
+- Changes requiring updates include:
+  - New functions or major function modifications
+  - Changes to testing strategy or validation commands
+  - Updates to project architecture or file structure
+  - Modifications to feature protection rules
+  - New development commands or workflows
+
 ## Commit Message Guidelines
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
