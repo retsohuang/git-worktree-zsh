@@ -39,11 +39,11 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 
 ### Default Configuration
 - Provide example .gwt-config with common development files:
-  - .claude
-  - .agent-os/
-  - CLAUDE.md  
-  - .vscode/
-  - .idea/
+  - .claude      # Claude AI configuration file
+  - .agent-os/   # Agent OS configuration and specs directory
+  - CLAUDE.md    # Project documentation for Claude
+  - .vscode/     # VS Code editor settings
+  - .idea/       # JetBrains IDE (e.g., PyCharm, IntelliJ) settings
 
 ## Approach
 
