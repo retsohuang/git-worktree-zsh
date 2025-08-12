@@ -21,7 +21,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 
 ### Implementation Details
 - Modify existing gwt-create function to check for .gwt-config file
-- Use zsh built-in file operations for copying
+- Use external `cp` command for file copying operations
 - Implement recursive copying for directories
 - Preserve file permissions and timestamps when copying
 - Skip copying if source files don't exist (no error)
@@ -69,10 +69,12 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ## External Dependencies
 
 ### zsh Built-ins
-- `cp` command with recursive and preserve options
 - Glob pattern expansion
 - File test operations (`[[ -f ]]`, `[[ -d ]]`)
 - String manipulation for comment filtering
+
+### External Commands
+- `cp` command with recursive and preserve options (`cp -rp`)
 
 ### Git Integration  
 - `git rev-parse --show-toplevel` to find repository root
