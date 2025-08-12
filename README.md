@@ -507,16 +507,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history, feature additions
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-**MIT License Summary:**
-
-- ✅ Commercial use
-- ✅ Distribution
-- ✅ Modification
-- ✅ Private use
-- ❌ Liability
-- ❌ Warranty
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
 
 ---
 
