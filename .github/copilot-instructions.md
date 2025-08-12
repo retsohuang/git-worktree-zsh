@@ -4,9 +4,12 @@ This repository contains zsh functions for creating and managing git worktrees w
 
 ## Repository Overview
 
+> **📋 Complete project details**: See [.agent-os/product/mission.md](.agent-os/product/mission.md) for product mission, users, and key features
+> 
+> **🔧 Technical specifications**: See [.agent-os/product/tech-stack.md](.agent-os/product/tech-stack.md) for complete technology stack and platform support
+
 **Project Type**: Shell function suite for git worktree management  
 **Main Language**: Zsh shell scripting  
-**Size**: Small project (~15 files, 26KB main function file)  
 **Target Runtime**: Zsh 5.0+, Git 2.5+, Unix-like systems (macOS/Linux/WSL)
 
 **Core Value Proposition**: Creates git worktrees in organized `{project-name}-worktrees/{branch-name}` directory structure instead of scattered directories.
@@ -14,6 +17,8 @@ This repository contains zsh functions for creating and managing git worktrees w
 **Main Function**: `gwt-create <branch-name> [target-directory]`
 
 ## Build and Validation Commands
+
+> **📖 Complete development workflow**: See [CLAUDE.md](CLAUDE.md) for comprehensive development commands, testing strategy, and architecture details
 
 ### Prerequisites Installation
 ```bash
@@ -94,6 +99,13 @@ markdownlint-cli2
 
 ## Known Issues and Workarounds
 
+> **⚠️ Complete issue documentation**: See [CLAUDE.md](CLAUDE.md) for detailed known issues, workarounds, and feature protection rules
+
+### Critical Guidelines Summary
+- **Fix Tests, Not Features**: When tests fail, prioritize fixing tests over removing functionality
+- **Feature Protection**: Never remove organized `{project-name}-worktrees/{branch-name}` structure
+- **Test Failures**: Environment test failures are acceptable; core/unit test failures require immediate attention
+
 ### Git Default Branch Name Issues
 **Problem**: Unit tests may fail with "pathspec 'main' did not match any file(s) known to git"  
 **Cause**: Git defaults to 'master' branch, tests expect 'main'  
@@ -113,6 +125,10 @@ markdownlint-cli2
 **Solution**: Re-run tests or use local environment for validation
 
 ## Project Layout and Architecture
+
+> **🏗️ Complete architecture details**: See [CLAUDE.md](CLAUDE.md) for function design patterns, architecture notes, and implementation details
+> 
+> **📋 Product decisions**: See [.agent-os/product/decisions.md](.agent-os/product/decisions.md) for architectural decisions and rationale
 
 ### Root Directory Files
 ```
@@ -157,6 +173,8 @@ git-worktree.zsh contains:
 
 ## Critical Feature Protection Rules
 
+> **🛡️ Complete protection guidelines**: See [CLAUDE.md](CLAUDE.md) for comprehensive feature protection rules and test fix strategies
+
 ### NEVER REMOVE These Features
 1. **Organized Structure**: `{project-name}-worktrees/{branch-name}` pattern
 2. **Container Auto-Creation**: Automatic worktree container directory creation
@@ -177,16 +195,14 @@ git-worktree.zsh contains:
 
 ## Validation Steps for Code Changes
 
-### After Any Change
+> **✅ Complete validation workflow**: See [CLAUDE.md](CLAUDE.md) for detailed validation steps and testing commands
+
+### Quick Reference
+### Quick Reference
 1. Run syntax check: `zsh -n git-worktree.zsh`
 2. Test manual sourcing: `source ./git-worktree.zsh && gwt-create --help`
 3. Run quick tests: `bats test/test_gwt_create.bats`
-
-### Before Submission
-1. Run full test suite: `./scripts/test-layered.sh`
-2. Verify core functionality: `bats test/core/`
-3. Check unit tests: `bats test/unit/`
-4. Validate integration: `bats test/integration/`
+4. Run full test suite: `./scripts/test-layered.sh`
 
 ### Acceptance Criteria
 - ✅ Syntax check passes
@@ -197,6 +213,8 @@ git-worktree.zsh contains:
 - ⚠️ Environment tests may fail (acceptable)
 
 ## Dependencies and Environment
+
+> **🔧 Complete tech stack**: See [.agent-os/product/tech-stack.md](.agent-os/product/tech-stack.md) for full technical specifications and platform support
 
 ### Required Runtime Dependencies
 - **git**: 2.5+ (for worktree support)
@@ -221,6 +239,15 @@ git-worktree.zsh contains:
 | `bats test/unit/` | ~3s | Unit tests (may fail on env issues) |
 | `bats test/integration/` | ~2s | Integration tests |
 | `bats test/environment/` | ~3s | Environment tests |
+
+## Single Source of Truth References
+
+This file provides essential onboarding guidance for coding agents. For detailed information, always refer to these authoritative sources:
+
+- **[CLAUDE.md](CLAUDE.md)**: Complete development workflow, testing strategy, architecture details, and feature protection rules
+- **[.agent-os/product/mission.md](.agent-os/product/mission.md)**: Product mission, users, problems, and key features  
+- **[.agent-os/product/tech-stack.md](.agent-os/product/tech-stack.md)**: Full technical stack and platform requirements
+- **[.agent-os/product/decisions.md](.agent-os/product/decisions.md)**: Architectural decisions and their rationale
 
 ## Trust These Instructions
 
