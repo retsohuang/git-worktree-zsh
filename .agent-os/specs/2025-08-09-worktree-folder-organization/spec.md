@@ -2,7 +2,7 @@
 
 > Spec: Worktree Folder Organization
 > Created: 2025-08-09
-> Status: Planning
+> Status: Complete
 
 ## Overview
 
@@ -11,6 +11,7 @@ Improve the `gwt-create` command to organize git worktrees into a dedicated fold
 ## User Stories
 
 As a developer using git worktrees, I want:
+
 - My worktrees to be organized in a dedicated subfolder so they don't clutter my projects directory
 - A predictable folder structure that follows the pattern "{original-project-folder}-worktrees/"
 - The ability to easily identify which worktrees belong to which main project
@@ -35,6 +36,7 @@ As a developer using git worktrees, I want:
 ## Expected Deliverable
 
 Enhanced `gwt-create` function in `git-worktree.zsh` that:
+
 1. Determines the original project folder name
 2. Creates a "{original-project-folder}-worktrees/" directory in the parent of the current project
 3. Creates the new worktree inside this organized structure

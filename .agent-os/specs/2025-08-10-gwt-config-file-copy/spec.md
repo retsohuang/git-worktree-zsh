@@ -2,7 +2,7 @@
 
 > Spec: Configurable File Copy for gwt-create
 > Created: 2025-08-10
-> Status: Planning
+> Status: In Progress
 
 ## Overview
 
@@ -19,7 +19,7 @@ When creating a new worktree, the system will copy predefined files and director
 ## Spec Scope
 
 1. **Configuration System** - Create a configuration mechanism to specify which files/directories should be copied
-2. **File Copy Integration** - Integrate file copying functionality into the existing gwt-create function  
+2. **File Copy Integration** - Integrate file copying functionality into the existing gwt-create function
 3. **User-Friendly Configuration** - Provide easy setup and modification of copy rules
 4. **Error Handling** - Handle missing files, permission issues, and copy failures gracefully
 5. **Documentation** - Update function documentation and usage examples
