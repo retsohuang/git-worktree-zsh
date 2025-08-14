@@ -732,6 +732,153 @@ function _gwt_complete_branch_names() {
     fi
 }
 
+# Configuration File Parsing Functions
+# These functions implement .gwt-config file discovery and parsing
+
+# Find .gwt-config file in current directory or repository root
+# Returns: Path to config file, or exits with code 1 if not found
+function _gwt_find_config_file() {
+    local config_file=".gwt-config"
+    
+    # Check current directory first
+    if [[ -f "$config_file" ]]; then
+        echo "$(pwd)/$config_file"
+        return 0
+    fi
+    
+    # Fall back to repository root
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ $? -eq 0 && -f "$repo_root/$config_file" ]]; then
+        echo "$repo_root/$config_file"
+        return 0
+    fi
+    
+    # Config file not found
+    return 1
+}
+
+# Parse .gwt-config file and output valid entries
+# Usage: _gwt_parse_config_file <config-file-path>
+function _gwt_parse_config_file() {
+    local config_file="$1"
+    
+    if [[ ! -f "$config_file" ]]; then
+        echo "Error: Configuration file '$config_file' not found" >&2
+        return 1
+    fi
+    
+    local line
+    while IFS= read -r line; do
+        # Trim leading and trailing whitespace
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        
+        # Skip empty lines and comments
+        if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+        
+        echo "$line"
+    done < "$config_file"
+}
+
+# Expand glob patterns and handle exclusions from config entries
+# Usage: _gwt_expand_config_patterns <config-file-path>
+function _gwt_expand_config_patterns() {
+    local config_file="$1"
+    local -a entries=()
+    local -a exclusions=()
+    local line
+    
+    # First pass: collect all entries and exclusions
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^! ]]; then
+            # Exclusion pattern (remove ! prefix)
+            exclusions+=("${line#!}")
+        else
+            # Regular entry
+            entries+=("$line")
+        fi
+    done < <(_gwt_parse_config_file "$config_file")
+    
+    # Second pass: expand patterns and apply exclusions
+    local entry
+    for entry in "${entries[@]}"; do
+        if [[ "$entry" =~ [\*\?\[\]] ]]; then
+            # Expand glob pattern
+            local -a expanded=()
+            setopt NULL_GLOB
+            expanded=(${~entry})
+            unsetopt NULL_GLOB
+            
+            local expanded_item
+            for expanded_item in "${expanded[@]}"; do
+                if ! _gwt_is_excluded "$expanded_item" "${exclusions[@]}"; then
+                    echo "$expanded_item"
+                fi
+            done
+        else
+            # Literal path
+            if ! _gwt_is_excluded "$entry" "${exclusions[@]}"; then
+                echo "$entry"
+            fi
+        fi
+    done
+}
+
+# Check if an item matches any exclusion pattern
+# Usage: _gwt_is_excluded <item> <exclusion-patterns...>
+function _gwt_is_excluded() {
+    local item="$1"
+    shift
+    local -a exclusions=("$@")
+    
+    local exclusion
+    for exclusion in "${exclusions[@]}"; do
+        if [[ "$exclusion" =~ [\*\?\[\]] ]]; then
+            # Glob pattern exclusion
+            if [[ "$item" == ${~exclusion} ]]; then
+                return 0
+            fi
+        else
+            # Literal exclusion
+            if [[ "$item" == "$exclusion" ]]; then
+                return 0
+            fi
+        fi
+    done
+    
+    return 1
+}
+
+# Validate configuration entries and filter out non-existent files
+# Usage: _gwt_validate_config_entries <config-file-path>
+function _gwt_validate_config_entries() {
+    local config_file="$1"
+    local entry
+    
+    while IFS= read -r entry; do
+        if [[ -e "$entry" ]]; then
+            echo "$entry"
+        fi
+    done < <(_gwt_expand_config_patterns "$config_file")
+}
+
+# Get all valid configuration entries for copying
+# Returns: List of files/directories to copy, or empty if no config
+function _gwt_get_config_entries() {
+    local config_file
+    config_file=$(_gwt_find_config_file)
+    
+    if [[ $? -ne 0 ]]; then
+        # No config file found - return empty (backward compatibility)
+        return 0
+    fi
+    
+    _gwt_validate_config_entries "$config_file"
+}
+
 # Alternative simpler completion function focusing on local branches only
 function _gwt_complete_local_branches() {
     local -a branches

@@ -2,12 +2,12 @@
 
 ## Tasks
 
-- [ ] 1. Configuration System Implementation
-  - [ ] 1.1 Write tests for configuration file parsing functionality
-  - [ ] 1.2 Create function to read and parse .gwt-config file
-  - [ ] 1.3 Implement glob pattern expansion and exclusion handling
-  - [ ] 1.4 Add configuration discovery logic (current dir -> repo root)
-  - [ ] 1.5 Verify configuration parsing tests pass
+- [x] 1. Configuration System Implementation
+  - [x] 1.1 Write tests for configuration file parsing functionality
+  - [x] 1.2 Create function to read and parse .gwt-config file
+  - [x] 1.3 Implement glob pattern expansion and exclusion handling
+  - [x] 1.4 Add configuration discovery logic (current dir -> repo root)
+  - [x] 1.5 Verify configuration parsing tests pass
 
 - [ ] 2. File Copy Functionality
   - [ ] 2.1 Write tests for file copying operations
