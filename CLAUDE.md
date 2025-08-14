@@ -117,6 +117,39 @@ bats test/core/ test/unit/ test/integration/
   - Modifications to feature protection rules
   - New development commands or workflows
 
+## Task Execution Protocol
+
+### CRITICAL: Task Status Tracking Rules
+
+**Dual Tracking System: TodoWrite + tasks.md MUST be synchronized**
+
+#### Task Completion Agreement
+```
+Task INCOMPLETE = TodoWrite ✓ + tasks.md ✗
+Task INCOMPLETE = TodoWrite ✗ + tasks.md ✓  
+Task COMPLETE   = TodoWrite ✓ + tasks.md ✓
+```
+
+#### Mandatory Completion Ritual
+Every time a sub-task is completed, MUST execute this sequence:
+1. Implement functionality
+2. Verify tests pass
+3. Update TodoWrite → `"status": "completed"`
+4. **IMMEDIATELY update tasks.md → `[x]`**
+5. Confirm both systems are synchronized
+
+#### Task Completion Checklist
+- [ ] Functionality implemented correctly
+- [ ] All tests pass
+- [ ] TodoWrite updated to "completed"
+- [ ] **tasks.md marked as [x]**
+- [ ] Both tracking systems status consistent
+
+#### Core Principles
+- **Mantra**: "TodoWrite done, tasks.md follows immediately"
+- **Atomic Operation**: Treat updating both places as one indivisible action
+- **Hard Rule**: Never declare "task complete" unless tasks.md is updated
+
 ## Commit Message Guidelines
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
