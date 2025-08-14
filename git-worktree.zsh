@@ -110,6 +110,9 @@ function gwt-create() {
         return 1
     fi
     
+    # Copy configuration files if .gwt-config exists
+    _gwt_copy_config_files "$target_path"
+    
     # Navigate to the new worktree directory
     _gwt_show_progress "Navigating to worktree directory..."
     cd "$target_path" || {
@@ -805,7 +808,7 @@ function _gwt_expand_config_patterns() {
     # Second pass: expand patterns and apply exclusions
     local entry
     for entry in "${entries[@]}"; do
-        if [[ "$entry" =~ [\*\?\[\]] ]]; then
+        if [[ "$entry" == *"*"* || "$entry" == *"?"* || "$entry" == *"["* || "$entry" == *"]"* ]]; then
             # Expand glob pattern
             local -a expanded=()
             setopt NULL_GLOB
@@ -836,7 +839,7 @@ function _gwt_is_excluded() {
     
     local exclusion
     for exclusion in "${exclusions[@]}"; do
-        if [[ "$exclusion" =~ [\*\?\[\]] ]]; then
+        if [[ "$exclusion" == *"*"* || "$exclusion" == *"?"* || "$exclusion" == *"["* || "$exclusion" == *"]"* ]]; then
             # Glob pattern exclusion
             if [[ "$item" == ${~exclusion} ]]; then
                 return 0
@@ -859,6 +862,10 @@ function _gwt_validate_config_entries() {
     local entry
     
     while IFS= read -r entry; do
+        # Skip .git directory - it should never be copied to worktrees
+        if [[ "$entry" == ".git" ]]; then
+            continue
+        fi
         if [[ -e "$entry" ]]; then
             echo "$entry"
         fi
@@ -924,7 +931,9 @@ function _gwt_copy_directory() {
     fi
     
     # Use cp with recursive, preserve permissions, and timestamps
-    if cp -rp "$source_dir" "$target_dir"; then
+    # Remove trailing slash to preserve directory structure
+    local clean_source="${source_dir%/}"
+    if cp -rp "$clean_source" "$target_dir"; then
         return 0
     else
         echo "Error: Failed to copy directory '$source_dir' to '$target_dir'" >&2
@@ -1012,14 +1021,14 @@ function _gwt_copy_entries() {
 }
 
 # Log copy operations with formatted output
-# Usage: _gwt_log_copy_operation <source> <target> <status> [error-message]
+# Usage: _gwt_log_copy_operation <source> <target> <copy_status> [error-message]
 function _gwt_log_copy_operation() {
     local source="$1"
     local target="$2" 
-    local status="$3"
+    local copy_status="$3"
     local error_message="$4"
     
-    if [[ "$status" == "success" ]]; then
+    if [[ "$copy_status" == "success" ]]; then
         echo "✓ Copied $source to $target"
     else
         echo "✗ Failed to copy $source to $target"
@@ -1066,6 +1075,57 @@ function _gwt_complete_local_branches() {
     if (( ${#branches[@]} > 0 )); then
         compadd -a branches
     fi
+}
+
+# Main file copying integration function
+# Usage: _gwt_copy_config_files <target-worktree-path>
+function _gwt_copy_config_files() {
+    local target_dir="$1"
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo "Error: Target directory '$target_dir' does not exist" >&2
+        return 1
+    fi
+    
+    # Get configuration entries (returns empty if no config file)
+    local -a config_entries=()
+    while IFS= read -r entry; do
+        [[ -n "$entry" ]] && config_entries+=("$entry")
+    done < <(_gwt_get_config_entries)
+    
+    # If no configuration entries, skip copying (backward compatibility)
+    if [[ ${#config_entries[@]} -eq 0 ]]; then
+        return 0
+    fi
+    
+    _gwt_show_progress "Copying configuration files..."
+    
+    # Copy each configuration entry
+    local success=0
+    local failed=0
+    local entry
+    
+    for entry in "${config_entries[@]}"; do
+        if _gwt_copy_entry "$entry" "$target_dir"; then
+            _gwt_log_copy_operation "$entry" "$target_dir" "success"
+            ((success++))
+        else
+            _gwt_log_copy_operation "$entry" "$target_dir" "failed"
+            ((failed++))
+        fi
+    done
+    
+    # Show summary if files were processed
+    if [[ $success -gt 0 || $failed -gt 0 ]]; then
+        if [[ $failed -eq 0 ]]; then
+            _gwt_success "Successfully copied $success configuration file(s)"
+        else
+            _gwt_warning "Copied $success file(s), failed to copy $failed file(s)"
+        fi
+    fi
+    
+    # Always return 0 to allow worktree creation to continue regardless of copy results
+    return 0
 }
 
 # Register the completion function

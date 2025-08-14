@@ -168,3 +168,127 @@ teardown() {
     # Should create in correct location relative to repo root
     [ -d "../test-repo-worktrees/feature-subdir-test" ]
 }
+
+@test "INTEGRATION: gwt-create with config file copying" {
+    # Create config file with test entries
+    cat > .gwt-config << EOF
+# Test configuration file
+CLAUDE.md
+.agent-os/
+.vscode/
+EOF
+    
+    # Create source files to copy
+    echo "# Claude instructions" > CLAUDE.md
+    mkdir -p .agent-os
+    echo "agent config" > .agent-os/config.yml
+    mkdir -p .vscode
+    echo '{"setting": "value"}' > .vscode/settings.json
+    
+    # Create worktree
+    run gwt-create feature/config-copy-test
+    [ "$status" -eq 0 ]
+    [ -d "../test-repo-worktrees/feature-config-copy-test" ]
+    
+    # Verify files were copied
+    [ -f "../test-repo-worktrees/feature-config-copy-test/CLAUDE.md" ]
+    [ -d "../test-repo-worktrees/feature-config-copy-test/.agent-os" ]
+    [ -f "../test-repo-worktrees/feature-config-copy-test/.agent-os/config.yml" ]
+    [ -d "../test-repo-worktrees/feature-config-copy-test/.vscode" ]
+    [ -f "../test-repo-worktrees/feature-config-copy-test/.vscode/settings.json" ]
+    
+    # Verify content is correct
+    [ "$(cat "../test-repo-worktrees/feature-config-copy-test/CLAUDE.md")" = "# Claude instructions" ]
+    [ "$(cat "../test-repo-worktrees/feature-config-copy-test/.agent-os/config.yml")" = "agent config" ]
+}
+
+@test "INTEGRATION: gwt-create with glob patterns in config" {
+    # Create config file with glob patterns - test files not in git
+    cat > .gwt-config << EOF
+*.md
+dev-*
+!dev-excluded.txt
+EOF
+    
+    # Create source files matching patterns (CHANGELOG not in initial commit)
+    echo "# CHANGELOG" > CHANGELOG.md
+    echo "development config" > dev-config.txt
+    echo "excluded content" > dev-excluded.txt
+    echo "normal file" > normal.txt
+    
+    # Don't commit these files - they should be copied by configuration
+    
+    # Create worktree
+    run gwt-create feature/glob-test
+    [ "$status" -eq 0 ]
+    
+    # Verify files matching patterns were copied (except excluded ones)
+    [ -f "../test-repo-worktrees/feature-glob-test/README.md" ]  # From git
+    [ -f "../test-repo-worktrees/feature-glob-test/CHANGELOG.md" ]  # Copied by config
+    [ -f "../test-repo-worktrees/feature-glob-test/dev-config.txt" ]  # Copied by config
+    [ ! -f "../test-repo-worktrees/feature-glob-test/dev-excluded.txt" ]  # Should be excluded
+    [ ! -f "../test-repo-worktrees/feature-glob-test/normal.txt" ]  # Doesn't match pattern
+}
+
+@test "INTEGRATION: gwt-create without config file maintains backward compatibility" {
+    # Ensure no config file exists
+    [[ ! -f .gwt-config ]]
+    
+    # Create worktree should work normally without copying any files
+    run gwt-create feature/no-config-test
+    [ "$status" -eq 0 ]
+    [ -d "../test-repo-worktrees/feature-no-config-test" ]
+    
+    # Should still contain git repository files but no extra files
+    [ -f "../test-repo-worktrees/feature-no-config-test/.git" ]
+    [ -f "../test-repo-worktrees/feature-no-config-test/README.md" ]  # Git files only
+}
+
+@test "INTEGRATION: gwt-create handles file copy failures gracefully" {
+    # Create config file with non-existent entries
+    cat > .gwt-config << EOF
+nonexistent-file.txt
+CLAUDE.md
+nonexistent-dir/
+EOF
+    
+    # Create only one of the configured files
+    echo "# Claude instructions" > CLAUDE.md
+    
+    # Create worktree should succeed despite missing files
+    run gwt-create feature/partial-copy-test
+    [ "$status" -eq 0 ]
+    [ -d "../test-repo-worktrees/feature-partial-copy-test" ]
+    
+    # Existing file should be copied
+    [ -f "../test-repo-worktrees/feature-partial-copy-test/CLAUDE.md" ]
+    
+    # Non-existent files should be skipped (no error)
+    [ ! -f "../test-repo-worktrees/feature-partial-copy-test/nonexistent-file.txt" ]
+    [ ! -d "../test-repo-worktrees/feature-partial-copy-test/nonexistent-dir" ]
+}
+
+@test "INTEGRATION: gwt-create with config in repository root" {
+    # Create config file in repository root
+    cat > .gwt-config << EOF
+CLAUDE.md
+EOF
+    echo "# Project instructions" > CLAUDE.md
+    
+    # Commit the config file and CLAUDE.md so they exist in the repository
+    git add .gwt-config CLAUDE.md
+    git commit -m "Add config file and CLAUDE.md for root config test"
+    
+    # Navigate to subdirectory
+    mkdir -p src
+    cd src
+    
+    # Should find config in repo root and copy files
+    run gwt-create feature/root-config-test
+    [ "$status" -eq 0 ]
+    
+    # Return to repo root to verify
+    cd "$TEST_TEMP_DIR/test-repo"
+    [ -f "../test-repo-worktrees/feature-root-config-test/CLAUDE.md" ]
+    [ "$(cat "../test-repo-worktrees/feature-root-config-test/CLAUDE.md")" = "# Project instructions" ]
+}

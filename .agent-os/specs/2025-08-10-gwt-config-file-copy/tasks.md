@@ -16,12 +16,12 @@
   - [x] 2.4 Implement error handling and logging for copy failures
   - [x] 2.5 Verify file copy tests pass
 
-- [ ] 3. Integration with gwt-create Function
-  - [ ] 3.1 Write tests for integrated gwt-create with file copying
-  - [ ] 3.2 Modify gwt-create to call configuration parsing
-  - [ ] 3.3 Integrate file copying into worktree creation workflow
-  - [ ] 3.4 Ensure backward compatibility when no config file exists
-  - [ ] 3.5 Verify integration tests pass
+- [x] 3. Integration with gwt-create Function
+  - [x] 3.1 Write tests for integrated gwt-create with file copying
+  - [x] 3.2 Modify gwt-create to call configuration parsing
+  - [x] 3.3 Integrate file copying into worktree creation workflow
+  - [x] 3.4 Ensure backward compatibility when no config file exists
+  - [x] 3.5 Verify integration tests pass
 
 - [ ] 4. Default Configuration and Documentation
   - [ ] 4.1 Write tests for default configuration examples
