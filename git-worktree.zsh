@@ -879,6 +879,177 @@ function _gwt_get_config_entries() {
     _gwt_validate_config_entries "$config_file"
 }
 
+# File Copy Functions
+# These functions implement the actual file and directory copying functionality
+
+# Copy a single file to target directory with permissions preservation
+# Usage: _gwt_copy_file <source-file> <target-dir>
+function _gwt_copy_file() {
+    local source_file="$1"
+    local target_dir="$2"
+    
+    if [[ ! -f "$source_file" ]]; then
+        echo "Error: Source file '$source_file' does not exist" >&2
+        return 1
+    fi
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo "Error: Target directory '$target_dir' does not exist" >&2
+        return 1
+    fi
+    
+    # Use cp with preserve permissions and timestamps
+    if cp -p "$source_file" "$target_dir"; then
+        return 0
+    else
+        echo "Error: Failed to copy '$source_file' to '$target_dir'" >&2
+        return 1
+    fi
+}
+
+# Copy a directory recursively to target directory with permissions preservation
+# Usage: _gwt_copy_directory <source-dir> <target-dir>
+function _gwt_copy_directory() {
+    local source_dir="$1"
+    local target_dir="$2"
+    
+    if [[ ! -d "$source_dir" ]]; then
+        echo "Error: Source directory '$source_dir' does not exist" >&2
+        return 1
+    fi
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo "Error: Target directory '$target_dir' does not exist" >&2
+        return 1
+    fi
+    
+    # Use cp with recursive, preserve permissions, and timestamps
+    if cp -rp "$source_dir" "$target_dir"; then
+        return 0
+    else
+        echo "Error: Failed to copy directory '$source_dir' to '$target_dir'" >&2
+        return 1
+    fi
+}
+
+# Handle symlink by copying the target content (not the link itself)
+# Usage: _gwt_copy_symlink <symlink> <target-dir>
+function _gwt_copy_symlink() {
+    local symlink="$1"
+    local target_dir="$2"
+    local symlink_name="$(basename "$symlink")"
+    
+    if [[ ! -L "$symlink" ]]; then
+        echo "Error: '$symlink' is not a symbolic link" >&2
+        return 1
+    fi
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo "Error: Target directory '$target_dir' does not exist" >&2
+        return 1
+    fi
+    
+    # Check if the symlink target exists and is readable
+    if [[ ! -r "$symlink" ]]; then
+        echo "Error: Symlink target for '$symlink' is not accessible" >&2
+        return 1
+    fi
+    
+    # Copy the target content, not the link itself
+    # Use -L to dereference symlinks and -p to preserve attributes
+    if cp -Lp "$symlink" "$target_dir/$symlink_name"; then
+        return 0
+    else
+        echo "Error: Failed to copy symlink target '$symlink' to '$target_dir'" >&2
+        return 1
+    fi
+}
+
+# Generic entry copying function that determines the appropriate copy method
+# Usage: _gwt_copy_entry <source-entry> <target-dir>
+function _gwt_copy_entry() {
+    local source_entry="$1"
+    local target_dir="$2"
+    
+    if [[ ! -e "$source_entry" && ! -L "$source_entry" ]]; then
+        echo "Error: Source '$source_entry' does not exist" >&2
+        return 1
+    fi
+    
+    if [[ -L "$source_entry" ]]; then
+        # Handle symbolic links
+        _gwt_copy_symlink "$source_entry" "$target_dir"
+    elif [[ -f "$source_entry" ]]; then
+        # Handle regular files
+        _gwt_copy_file "$source_entry" "$target_dir"
+    elif [[ -d "$source_entry" ]]; then
+        # Handle directories
+        _gwt_copy_directory "$source_entry" "$target_dir"
+    else
+        echo "Error: Unknown file type for '$source_entry'" >&2
+        return 1
+    fi
+}
+
+# Process multiple configuration entries for copying
+# Usage: _gwt_copy_entries <space-separated-entries> <target-dir>
+function _gwt_copy_entries() {
+    local entries="$1"
+    local target_dir="$2"
+    local entry
+    local success=0
+    local failed=0
+    
+    for entry in $entries; do
+        if _gwt_copy_entry "$entry" "$target_dir"; then
+            ((success++))
+        else
+            ((failed++))
+        fi
+    done
+    
+    return 0  # Always succeed to allow worktree creation to continue
+}
+
+# Log copy operations with formatted output
+# Usage: _gwt_log_copy_operation <source> <target> <status> [error-message]
+function _gwt_log_copy_operation() {
+    local source="$1"
+    local target="$2" 
+    local status="$3"
+    local error_message="$4"
+    
+    if [[ "$status" == "success" ]]; then
+        echo "✓ Copied $source to $target"
+    else
+        echo "✗ Failed to copy $source to $target"
+        if [[ -n "$error_message" ]]; then
+            echo "  Reason: $error_message"
+        fi
+    fi
+}
+
+# Validate copy permissions (check source readability and target writability)
+# Usage: _gwt_validate_copy_permissions <source> [target-dir]
+function _gwt_validate_copy_permissions() {
+    local source="$1"
+    local target_dir="$2"
+    
+    # Check source readability only if source exists
+    if [[ -n "$source" && -e "$source" && ! -r "$source" ]]; then
+        echo "Error: Source '$source' is not readable" >&2
+        return 1
+    fi
+    
+    # Check target directory writability if provided
+    if [[ -n "$target_dir" && ! -w "$target_dir" ]]; then
+        echo "Error: Target directory '$target_dir' is not writable" >&2
+        return 1
+    fi
+    
+    return 0
+}
+
 # Alternative simpler completion function focusing on local branches only
 function _gwt_complete_local_branches() {
     local -a branches
