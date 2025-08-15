@@ -24,11 +24,37 @@ setup_git_repo() {
     git commit -m "Initial commit"
 }
 
-# Load the main function file
+# Load the main function file and ensure zsh functions work properly
 load_git_worktree_functions() {
     if [[ -f "$ORIGINAL_DIR/git-worktree.zsh" ]]; then
         source "$ORIGINAL_DIR/git-worktree.zsh" 2>/dev/null || true
     fi
+}
+
+# Run a zsh function with proper zsh context
+# This is required when testing zsh-specific functionality (like glob expansion)
+# that doesn't work in the bash environment where bats runs
+# Usage: run_in_zsh <function_name> [args...]
+run_in_zsh() {
+    local func_name="$1"
+    shift
+    
+    # Build the command string with proper argument handling
+    local cmd="source '$ORIGINAL_DIR/git-worktree.zsh' && $func_name"
+    
+    # Add arguments if provided, with proper escaping
+    if [[ $# -gt 0 ]]; then
+        local escaped_args=()
+        for arg in "$@"; do
+            # Escape single quotes by replacing them with '\''
+            local escaped_arg="${arg//\'/\'\\\'\'}"
+            escaped_args+=("'$escaped_arg'")
+        done
+        cmd="$cmd ${escaped_args[*]}"
+    fi
+    
+    # Execute in zsh
+    zsh -c "$cmd"
 }
 
 # Clean up worktrees

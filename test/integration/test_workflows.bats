@@ -218,8 +218,8 @@ EOF
     
     # Don't commit these files - they should be copied by configuration
     
-    # Create worktree
-    run gwt-create feature/glob-test
+    # Create worktree (run in zsh to ensure glob expansion works)
+    run run_in_zsh gwt-create feature/glob-test
     [ "$status" -eq 0 ]
     
     # Verify files matching patterns were copied (except excluded ones)

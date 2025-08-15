@@ -121,7 +121,7 @@ EOF
 .idea/
 EOF
     
-    run _gwt_expand_config_patterns .gwt-config
+    run run_in_zsh _gwt_expand_config_patterns .gwt-config
     [ "$status" -eq 0 ]
     [[ "$output" =~ "CLAUDE.md" ]]
     [[ "$output" =~ ".vscode/settings.json" ]]
@@ -142,7 +142,7 @@ EOF
 !.vscode/temp.log
 EOF
     
-    run _gwt_expand_config_patterns .gwt-config
+    run run_in_zsh _gwt_expand_config_patterns .gwt-config
     [ "$status" -eq 0 ]
     [[ "$output" =~ "CLAUDE.md" ]]
     [[ "$output" =~ ".vscode/settings.json" ]]
@@ -157,7 +157,7 @@ non-existent-*.file
 missing-directory/
 EOF
     
-    run _gwt_expand_config_patterns .gwt-config
+    run run_in_zsh _gwt_expand_config_patterns .gwt-config
     [ "$status" -eq 0 ]
     # Should succeed but return empty or minimal output
 }
