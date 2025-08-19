@@ -23,16 +23,16 @@
   - [x] 3.4 Ensure backward compatibility when no config file exists
   - [x] 3.5 Verify integration tests pass
 
-- [ ] 4. Default Configuration and Documentation
-  - [ ] 4.1 Write tests for default configuration examples
-  - [ ] 4.2 Create example .gwt-config file with common development files
-  - [ ] 4.3 Update function documentation with configuration usage
-  - [ ] 4.4 Add usage examples to documentation
-  - [ ] 4.5 Verify all tests pass and documentation is accurate
+- [x] 4. Default Configuration and Documentation
+  - [x] 4.1 Write tests for default configuration examples
+  - [x] 4.2 Create example .gwt-config file with common development files
+  - [x] 4.3 Update function documentation with configuration usage
+  - [x] 4.4 Add usage examples to documentation
+  - [x] 4.5 Verify all tests pass and documentation is accurate
 
-- [ ] 5. Error Handling and Edge Cases
-  - [ ] 5.1 Write tests for edge cases (missing files, permission errors)
-  - [ ] 5.2 Implement graceful handling of missing source files
-  - [ ] 5.3 Add clear error messages for permission issues
-  - [ ] 5.4 Ensure worktree creation continues despite copy failures
-  - [ ] 5.5 Verify all error handling tests pass
+- [x] 5. Error Handling and Edge Cases
+  - [x] 5.1 Write tests for edge cases (missing files, permission errors)
+  - [x] 5.2 Implement graceful handling of missing source files
+  - [x] 5.3 Add clear error messages for permission issues
+  - [x] 5.4 Ensure worktree creation continues despite copy failures
+  - [x] 5.5 Verify all error handling tests pass
