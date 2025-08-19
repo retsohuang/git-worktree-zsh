@@ -1019,10 +1019,15 @@ function _gwt_copy_file() {
             error_msg="Permission denied: target directory not writable"
         elif [[ ! -r "$source_file" ]]; then
             error_msg="Permission denied: source file not readable"
-        elif ! df "$target_dir" >/dev/null 2>&1; then
-            error_msg="Disk space or filesystem error"
         else
-            error_msg="Copy operation failed"
+            # Capture cp error output for more informative message
+            local cp_error
+            cp_error=$(cp -p "$source_file" "$target_dir" 2>&1)
+            if [[ -n "$cp_error" ]]; then
+                error_msg="Copy operation failed: $cp_error"
+            else
+                error_msg="Copy operation failed"
+            fi
         fi
         
         _gwt_log_copy_operation "$source_file" "$target_dir" "failure" "$error_msg"
@@ -1078,10 +1083,15 @@ function _gwt_copy_directory() {
             error_msg="Permission denied: target directory not writable"
         elif [[ ! -r "$source_dir" ]]; then
             error_msg="Permission denied: source directory not readable"
-        elif ! df "$target_dir" >/dev/null 2>&1; then
-            error_msg="Disk space or filesystem error"
         else
-            error_msg="Directory copy operation failed"
+            # Capture cp error output for more informative message
+            local cp_error
+            cp_error=$(cp -rp "$clean_source" "$target_dir" 2>&1)
+            if [[ -n "$cp_error" ]]; then
+                error_msg="Directory copy operation failed: $cp_error"
+            else
+                error_msg="Directory copy operation failed"
+            fi
         fi
         
         _gwt_log_copy_operation "$source_dir" "$target_dir" "failure" "$error_msg"
@@ -1143,10 +1153,15 @@ function _gwt_copy_symlink() {
             error_msg="Permission denied: target directory not writable"
         elif [[ ! -r "$symlink" ]]; then
             error_msg="Permission denied: symlink target not readable"
-        elif ! df "$target_dir" >/dev/null 2>&1; then
-            error_msg="Disk space or filesystem error"
         else
-            error_msg="Symlink copy operation failed"
+            # Capture cp error output for more informative message
+            local cp_error
+            cp_error=$(cp -Lp "$symlink" "$target_dir/$symlink_name" 2>&1)
+            if [[ -n "$cp_error" ]]; then
+                error_msg="Symlink copy operation failed: $cp_error"
+            else
+                error_msg="Symlink copy operation failed"
+            fi
         fi
         
         _gwt_log_copy_operation "$symlink" "$target_dir" "failure" "$error_msg"
@@ -1233,17 +1248,17 @@ function _gwt_validate_copy_permissions() {
     local source="$1"
     local target_dir="$2"
     
-    # Check if source exists
-    if [[ -n "$source" && ! -e "$source" ]]; then
-        echo "Error: Source '$source' does not exist" >&2
-        return 1
+    # Check if source exists and is readable
+    if [[ -n "$source" ]]; then
+        if [[ ! -e "$source" ]]; then
+            echo "Error: Source '$source' does not exist" >&2
+            return 1
+        elif [[ ! -r "$source" ]]; then
+            echo "Error: Source '$source' is not readable" >&2
+            return 1
+        fi
     fi
     
-    # Check source readability
-    if [[ -n "$source" && -e "$source" && ! -r "$source" ]]; then
-        echo "Error: Source '$source' is not readable" >&2
-        return 1
-    fi    
     # Check target directory writability if provided
     if [[ -n "$target_dir" && ! -w "$target_dir" ]]; then
         echo "Error: Target directory '$target_dir' is not writable" >&2
