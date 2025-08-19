@@ -62,8 +62,11 @@ teardown() {
     mkdir -p target-dir
     
     run _gwt_copy_file non-existent.txt target-dir/
-    [ "$status" -eq 1 ]
+    # Task 5.4: Should continue worktree creation despite copy failures
+    [ "$status" -eq 0 ]
     [ ! -f target-dir/non-existent.txt ]
+    # Should log that file was skipped
+    [[ "$output" =~ "Skipped" ]]
 }
 
 @test "UNIT: _gwt_copy_directory copies directory recursively" {
@@ -108,8 +111,11 @@ teardown() {
     mkdir -p target-dir
     
     run _gwt_copy_directory non-existent-dir target-dir/
-    [ "$status" -eq 1 ]
+    # Task 5.4: Should continue worktree creation despite copy failures
+    [ "$status" -eq 0 ]
     [ ! -d target-dir/non-existent-dir ]
+    # Should log that directory was skipped
+    [[ "$output" =~ "Skipped" ]]
 }
 
 @test "UNIT: _gwt_copy_symlink handles symbolic links by copying target" {
@@ -135,8 +141,11 @@ teardown() {
     mkdir -p target-dir
     
     run _gwt_copy_symlink broken-link.txt target-dir/
-    [ "$status" -eq 1 ]
+    # Task 5.4: Should continue worktree creation despite copy failures
+    [ "$status" -eq 0 ]
     [ ! -f target-dir/broken-link.txt ]
+    # Should log failure for broken symlink
+    [[ "$output" =~ "Failed" ]] || [[ "$output" =~ "Broken symlink" ]]
 }
 
 @test "UNIT: _gwt_copy_entry determines correct copy method for file" {
@@ -241,6 +250,165 @@ teardown() {
     mkdir -p writable-dir
     chmod 755 writable-dir
     
+    echo "test content" > source
+    
     run _gwt_validate_copy_permissions "source" writable-dir/
     [ "$status" -eq 0 ]
+}
+
+# Tests for Task 5.1: Edge cases and error handling
+@test "UNIT: _gwt_copy_file handles permission denied gracefully" {
+    # Create source file
+    echo "test content" > source.txt
+    
+    # Create target directory with limited permissions (if possible)
+    mkdir -p target-dir
+    chmod 555 target-dir 2>/dev/null || true  # Read-only directory
+    
+    run _gwt_copy_file source.txt target-dir/
+    # Task 5.4: Should continue worktree creation despite copy failures
+    [ "$status" -eq 0 ]
+    # Should log permission failure
+    [[ "$output" =~ "Permission denied" ]] || [[ "$output" =~ "Failed" ]]
+    
+    # Cleanup
+    chmod 755 target-dir 2>/dev/null || true
+}
+
+@test "UNIT: _gwt_copy_file handles disk space issues gracefully" {
+    # This test simulates disk space issues by trying to copy to non-existent path
+    echo "test content" > source.txt
+    
+    # Try to copy to a path that doesn't exist and can't be created
+    run _gwt_copy_file source.txt /non/existent/deeply/nested/path/
+    # Task 5.4: Should continue worktree creation despite copy failures
+    [ "$status" -eq 0 ]
+    # Should log failure
+    [[ "$output" =~ "Failed" ]] || [[ "$output" =~ "Cannot create" ]]
+}
+
+@test "UNIT: _gwt_copy_file handles extremely long filenames" {
+    # Create file with very long name (but within filesystem limits)
+    local long_name="very_long_filename_that_tests_filesystem_limits_but_stays_within_reasonable_bounds.txt"
+    echo "test content" > "$long_name"
+    mkdir -p target-dir
+    
+    run _gwt_copy_file "$long_name" target-dir/
+    [ "$status" -eq 0 ]
+    [ -f "target-dir/$long_name" ]
+}
+
+@test "UNIT: _gwt_copy_file handles special characters in filenames" {
+    # Create files with special characters
+    echo "content1" > "file with spaces.txt"
+    echo "content2" > "file-with-dashes.txt"
+    echo "content3" > "file_with_underscores.txt"
+    mkdir -p target-dir
+    
+    run _gwt_copy_file "file with spaces.txt" target-dir/
+    [ "$status" -eq 0 ]
+    [ -f "target-dir/file with spaces.txt" ]
+    
+    run _gwt_copy_file "file-with-dashes.txt" target-dir/
+    [ "$status" -eq 0 ]
+    [ -f "target-dir/file-with-dashes.txt" ]
+    
+    run _gwt_copy_file "file_with_underscores.txt" target-dir/
+    [ "$status" -eq 0 ]
+    [ -f "target-dir/file_with_underscores.txt" ]
+}
+
+@test "UNIT: _gwt_copy_directory handles deeply nested structures" {
+    # Create deeply nested directory structure
+    mkdir -p "deep/nested/directory/structure/level5"
+    echo "deep content" > "deep/nested/directory/structure/level5/file.txt"
+    mkdir -p target-dir
+    
+    run _gwt_copy_directory "deep" target-dir/
+    [ "$status" -eq 0 ]
+    [ -f "target-dir/deep/nested/directory/structure/level5/file.txt" ]
+}
+
+@test "UNIT: _gwt_copy_directory handles empty directories" {
+    # Create empty directory
+    mkdir -p empty-dir
+    mkdir -p target-dir
+    
+    run _gwt_copy_directory empty-dir target-dir/
+    [ "$status" -eq 0 ]
+    [ -d target-dir/empty-dir ]
+}
+
+@test "UNIT: _gwt_copy_symlink handles circular symlinks gracefully" {
+    # Create circular symlink
+    ln -s link2.txt link1.txt
+    ln -s link1.txt link2.txt
+    mkdir -p target-dir
+    
+    run _gwt_copy_symlink link1.txt target-dir/
+    # Task 5.4: Should continue worktree creation despite copy failures
+    [ "$status" -eq 0 ]
+    # Should not hang or crash, and should log failure
+    [[ "$output" =~ "Failed" ]] || [[ "$output" =~ "Broken symlink" ]]
+}
+
+@test "UNIT: _gwt_copy_symlink handles deeply nested symlinks" {
+    # Create nested symlink chain
+    echo "final content" > final.txt
+    ln -s final.txt link3.txt
+    ln -s link3.txt link2.txt
+    ln -s link2.txt link1.txt
+    mkdir -p target-dir
+    
+    run _gwt_copy_symlink link1.txt target-dir/
+    [ "$status" -eq 0 ]
+    [ -f target-dir/link1.txt ]
+    [ "$(cat target-dir/link1.txt)" = "final content" ]
+}
+
+@test "UNIT: _gwt_copy_entries handles mixed success and failure scenarios" {
+    # Create mix of valid and invalid sources
+    echo "valid1" > valid1.txt
+    echo "valid2" > valid2.txt
+    mkdir -p target-dir
+    
+    # Mix existing and non-existing files
+    run _gwt_copy_entries "valid1.txt non-existent1.txt valid2.txt non-existent2.txt" target-dir/
+    
+    # Should continue processing despite failures
+    [ -f target-dir/valid1.txt ]
+    [ -f target-dir/valid2.txt ]
+    [ ! -f target-dir/non-existent1.txt ]
+    [ ! -f target-dir/non-existent2.txt ]
+}
+
+@test "UNIT: _gwt_copy_entries handles empty input gracefully" {
+    mkdir -p target-dir
+    
+    run _gwt_copy_entries "" target-dir/
+    [ "$status" -eq 0 ]
+    # Should not crash on empty input
+}
+
+@test "UNIT: _gwt_log_copy_operation handles very long error messages" {
+    local long_error="This is a very long error message that might occur during file operations and should be handled gracefully without breaking the output formatting or causing display issues in the terminal"
+    
+    run _gwt_log_copy_operation "test-file.txt" "target/" "failure" "$long_error"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "✗" ]]
+    [[ "$output" =~ "test-file.txt" ]]
+}
+
+@test "UNIT: _gwt_validate_copy_permissions handles non-existent source paths" {
+    run _gwt_validate_copy_permissions "/completely/non/existent/path"
+    [ "$status" -ne 0 ]
+    # Should fail gracefully - this function should still return error codes for validation
+}
+
+@test "UNIT: _gwt_validate_copy_permissions handles non-existent target directories" {
+    echo "content" > test-file.txt
+    
+    run _gwt_validate_copy_permissions test-file.txt "/non/existent/target/path/"
+    [ "$status" -ne 0 ]
+    # Should fail gracefully when target directory doesn't exist - validation should still return errors
 }
