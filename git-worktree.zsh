@@ -146,7 +146,35 @@ Examples:
   gwt-create bugfix-123 bugfix
   gwt-create --dry-run test-branch
 
-The worktree will be created in a dedicated "{project-name}-worktrees/" folder.
+Configuration:
+  gwt-create automatically copies development files to new worktrees based on 
+  a .gwt-config file. This file should contain one file/directory per line:
+
+    # Example .gwt-config file
+    .claude          # Claude AI configuration
+    CLAUDE.md        # Project documentation
+    .agent-os/       # Agent OS specifications
+    .vscode/         # VS Code settings
+    .idea/           # JetBrains IDE settings
+
+  The configuration file is searched in the current directory first, then in
+  the git repository root. If no config file exists, no files are copied.
+
+  Use glob patterns for flexible matching:
+    *.env.example    # Copy environment templates
+    docs/*.md        # Copy documentation files
+    !secret.env      # Exclude specific files (use ! prefix)
+
+Structure:
+  The worktree will be created in a dedicated "{project-name}-worktrees/" folder
+  with the structure: {project-name}-worktrees/{branch-name}/
+
+File Copying:
+  - Files are copied with preserved permissions and timestamps
+  - Missing source files are skipped without error
+  - Symlinks are copied as regular files (target content)
+  - Copy failures do not prevent worktree creation
+  - Detailed logging shows success/failure for each file
 EOF
 }
 
@@ -886,92 +914,225 @@ function _gwt_get_config_entries() {
     _gwt_validate_config_entries "$config_file"
 }
 
+# Create example .gwt-config file with common development files
+# Usage: _gwt_create_example_config
+# Returns: 0 on success, 1 if file already exists
+function _gwt_create_example_config() {
+    local config_file=".gwt-config"
+    
+    # Don't overwrite existing config file
+    if [[ -f "$config_file" ]]; then
+        echo "Error: Configuration file '$config_file' already exists" >&2
+        echo "Suggestion: Remove existing file or edit it manually" >&2
+        return 1
+    fi
+    
+    # Create default configuration with helpful comments
+    cat > "$config_file" << 'EOF'
+# Git Worktree Default Configuration
+# This file specifies which development files to copy to new worktrees
+# Lines starting with # are comments and will be ignored
+# Empty lines are also ignored
+
+# Claude AI configuration file
+.claude
+
+# Project documentation for Claude
+CLAUDE.md
+
+# Agent OS configuration and specs directory
+.agent-os/
+
+# VS Code editor settings
+.vscode/
+
+# JetBrains IDE settings (IntelliJ, PyCharm, etc.)
+.idea/
+
+# Example patterns you might want to add:
+# *.env.example    # Environment file templates
+# .editorconfig    # Editor configuration
+# .gitignore       # Git ignore patterns (for new repos)
+# docs/            # Documentation directory
+# scripts/         # Project scripts
+# package.json     # Node.js dependencies (for web projects)
+# requirements.txt # Python dependencies
+# Gemfile          # Ruby dependencies
+# composer.json    # PHP dependencies
+
+# Example exclusion patterns (files to NOT copy):
+# !.env            # Don't copy actual environment files
+# !node_modules/   # Don't copy dependencies
+# !.git/           # Don't copy git directory
+EOF
+    
+    echo "✓ Created example configuration file: $config_file"
+    echo "  Edit this file to customize which files are copied to new worktrees"
+    return 0
+}
+
 # File Copy Functions
 # These functions implement the actual file and directory copying functionality
 
+# Helper function to execute copy operations with consistent error handling
+# Usage: _gwt_execute_copy_with_error_handling <operation-type> <source> <target> <cp-args...>
+function _gwt_execute_copy_with_error_handling() {
+    local operation="$1"
+    local source="$2"
+    local target="$3"
+    shift 3
+    local cp_args=("$@")
+    
+    # Execute copy command and capture both status and error output
+    local cp_error
+    cp_error=$(cp "${cp_args[@]}" "$source" "$target" 2>&1)
+    local cp_status=$?
+    
+    if [[ $cp_status -eq 0 ]]; then
+        _gwt_log_copy_operation "$source" "$target" "success"
+        return 0
+    else
+        # Determine specific error cause for informative message
+        local error_msg="Unknown error"
+        if [[ ! -w "$(dirname "$target")" ]]; then
+            error_msg="Permission denied: target directory not writable"
+        elif [[ ! -r "$source" ]]; then
+            error_msg="Permission denied: source not readable"
+        elif [[ -n "$cp_error" ]]; then
+            error_msg="$operation failed: $cp_error"
+        else
+            error_msg="$operation failed"
+        fi
+        
+        _gwt_log_copy_operation "$source" "$target" "failure" "$error_msg"
+        return 0  # Return success to continue worktree creation
+    fi
+}
+
 # Copy a single file to target directory with permissions preservation
+# Enhanced error handling for Task 5: graceful failure handling
 # Usage: _gwt_copy_file <source-file> <target-dir>
 function _gwt_copy_file() {
     local source_file="$1"
     local target_dir="$2"
     
+    # Task 5.2: Implement graceful handling of missing source files
     if [[ ! -f "$source_file" ]]; then
-        echo "Error: Source file '$source_file' does not exist" >&2
-        return 1
+        # Skip copying if source files don't exist (no error)
+        _gwt_log_copy_operation "$source_file" "$target_dir" "skipped" "Source file does not exist"
+        return 0  # Return success to continue worktree creation
+    fi
+    
+    # Task 5.3: Add clear error messages for permission issues
+    if [[ ! -r "$source_file" ]]; then
+        _gwt_log_copy_operation "$source_file" "$target_dir" "failure" "Permission denied: cannot read source file"
+        return 0  # Return success to continue worktree creation
     fi
     
     if [[ ! -d "$target_dir" ]]; then
-        echo "Error: Target directory '$target_dir' does not exist" >&2
-        return 1
+        # Try to create target directory
+        if ! mkdir -p "$target_dir" 2>/dev/null; then
+            _gwt_log_copy_operation "$source_file" "$target_dir" "failure" "Cannot create target directory"
+            return 0  # Return success to continue worktree creation
+        fi
+    fi
+    
+    if [[ ! -w "$target_dir" ]]; then
+        _gwt_log_copy_operation "$source_file" "$target_dir" "failure" "Permission denied: cannot write to target directory"
+        return 0  # Return success to continue worktree creation
     fi
     
     # Use cp with preserve permissions and timestamps
-    if cp -p "$source_file" "$target_dir"; then
-        return 0
-    else
-        echo "Error: Failed to copy '$source_file' to '$target_dir'" >&2
-        return 1
-    fi
+    # Task 5.4: Ensure worktree creation continues despite copy failures
+    _gwt_execute_copy_with_error_handling "Copy operation" "$source_file" "$target_dir" -p
 }
 
 # Copy a directory recursively to target directory with permissions preservation
+# Enhanced error handling for Task 5: graceful failure handling
 # Usage: _gwt_copy_directory <source-dir> <target-dir>
 function _gwt_copy_directory() {
     local source_dir="$1"
     local target_dir="$2"
     
+    # Task 5.2: Implement graceful handling of missing source directories
     if [[ ! -d "$source_dir" ]]; then
-        echo "Error: Source directory '$source_dir' does not exist" >&2
-        return 1
+        # Skip copying if source directory doesn't exist (no error)
+        _gwt_log_copy_operation "$source_dir" "$target_dir" "skipped" "Source directory does not exist"
+        return 0  # Return success to continue worktree creation
+    fi
+    
+    # Task 5.3: Add clear error messages for permission issues
+    if [[ ! -r "$source_dir" ]]; then
+        _gwt_log_copy_operation "$source_dir" "$target_dir" "failure" "Permission denied: cannot read source directory"
+        return 0  # Return success to continue worktree creation
     fi
     
     if [[ ! -d "$target_dir" ]]; then
-        echo "Error: Target directory '$target_dir' does not exist" >&2
-        return 1
+        # Try to create target directory
+        if ! mkdir -p "$target_dir" 2>/dev/null; then
+            _gwt_log_copy_operation "$source_dir" "$target_dir" "failure" "Cannot create target directory"
+            return 0  # Return success to continue worktree creation
+        fi
+    fi
+    
+    if [[ ! -w "$target_dir" ]]; then
+        _gwt_log_copy_operation "$source_dir" "$target_dir" "failure" "Permission denied: cannot write to target directory"
+        return 0  # Return success to continue worktree creation
     fi
     
     # Use cp with recursive, preserve permissions, and timestamps
     # Remove trailing slash to preserve directory structure
     local clean_source="${source_dir%/}"
-    if cp -rp "$clean_source" "$target_dir"; then
-        return 0
-    else
-        echo "Error: Failed to copy directory '$source_dir' to '$target_dir'" >&2
-        return 1
-    fi
+    
+    # Task 5.4: Ensure worktree creation continues despite copy failures
+    _gwt_execute_copy_with_error_handling "Directory copy operation" "$clean_source" "$target_dir" -rp
 }
 
 # Handle symlink by copying the target content (not the link itself)
+# Enhanced error handling for Task 5: graceful failure handling
 # Usage: _gwt_copy_symlink <symlink> <target-dir>
 function _gwt_copy_symlink() {
     local symlink="$1"
     local target_dir="$2"
     local symlink_name="$(basename "$symlink")"
     
+    # Task 5.2: Implement graceful handling of missing source files
     if [[ ! -L "$symlink" ]]; then
-        echo "Error: '$symlink' is not a symbolic link" >&2
-        return 1
+        if [[ ! -e "$symlink" ]]; then
+            # Symlink doesn't exist - skip gracefully
+            _gwt_log_copy_operation "$symlink" "$target_dir" "skipped" "Symlink does not exist"
+        else
+            # Not a symlink - treat as regular file/directory
+            _gwt_log_copy_operation "$symlink" "$target_dir" "skipped" "Not a symbolic link"
+        fi
+        return 0  # Return success to continue worktree creation
     fi
     
     if [[ ! -d "$target_dir" ]]; then
-        echo "Error: Target directory '$target_dir' does not exist" >&2
-        return 1
+        # Try to create target directory
+        if ! mkdir -p "$target_dir" 2>/dev/null; then
+            _gwt_log_copy_operation "$symlink" "$target_dir" "failure" "Cannot create target directory"
+            return 0  # Return success to continue worktree creation
+        fi
     fi
     
+    # Task 5.3: Add clear error messages for permission issues
     # Check if the symlink target exists and is readable
-    if [[ ! -r "$symlink" ]]; then
-        echo "Error: Symlink target for '$symlink' is not accessible" >&2
-        return 1
+    if [[ ! -e "$symlink" ]]; then
+        # Broken symlink
+        _gwt_log_copy_operation "$symlink" "$target_dir" "failure" "Broken symlink: target does not exist"
+        return 0  # Return success to continue worktree creation
     fi
     
+    if [[ ! -r "$symlink" ]]; then
+        _gwt_log_copy_operation "$symlink" "$target_dir" "failure" "Permission denied: symlink target not readable"
+        return 0  # Return success to continue worktree creation
+    fi
+    
+    # Task 5.4: Ensure worktree creation continues despite copy failures
     # Copy the target content, not the link itself
     # Use -L to dereference symlinks and -p to preserve attributes
-    if cp -Lp "$symlink" "$target_dir/$symlink_name"; then
-        return 0
-    else
-        echo "Error: Failed to copy symlink target '$symlink' to '$target_dir'" >&2
-        return 1
-    fi
+    _gwt_execute_copy_with_error_handling "Symlink copy operation" "$symlink" "$target_dir/$symlink_name" -Lp
 }
 
 # Generic entry copying function that determines the appropriate copy method
@@ -1028,14 +1189,23 @@ function _gwt_log_copy_operation() {
     local copy_status="$3"
     local error_message="$4"
     
-    if [[ "$copy_status" == "success" ]]; then
-        echo "✓ Copied $source to $target"
-    else
-        echo "✗ Failed to copy $source to $target"
-        if [[ -n "$error_message" ]]; then
-            echo "  Reason: $error_message"
-        fi
-    fi
+    case "$copy_status" in
+        "success")
+            echo "✓ Copied $source to $target"
+            ;;
+        "skipped")
+            echo "⊘ Skipped $source"
+            if [[ -n "$error_message" ]]; then
+                echo "  Reason: $error_message"
+            fi
+            ;;
+        "failure"|*)
+            echo "✗ Failed to copy $source to $target"
+            if [[ -n "$error_message" ]]; then
+                echo "  Reason: $error_message"
+            fi
+            ;;
+    esac
 }
 
 # Validate copy permissions (check source readability and target writability)
@@ -1044,10 +1214,15 @@ function _gwt_validate_copy_permissions() {
     local source="$1"
     local target_dir="$2"
     
-    # Check source readability only if source exists
-    if [[ -n "$source" && -e "$source" && ! -r "$source" ]]; then
-        echo "Error: Source '$source' is not readable" >&2
-        return 1
+    # Check if source exists and is readable
+    if [[ -n "$source" ]]; then
+        if [[ ! -e "$source" ]]; then
+            echo "Error: Source '$source' does not exist" >&2
+            return 1
+        elif [[ ! -r "$source" ]]; then
+            echo "Error: Source '$source' is not readable" >&2
+            return 1
+        fi
     fi
     
     # Check target directory writability if provided

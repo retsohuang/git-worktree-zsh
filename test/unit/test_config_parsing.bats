@@ -222,3 +222,127 @@ EOF
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
+
+# Tests for Task 4.1: Default configuration examples
+@test "UNIT: default config example includes common development files" {
+    # Create common development files that should be in default config
+    touch .claude CLAUDE.md
+    mkdir -p .agent-os .vscode .idea
+    touch .agent-os/spec.md .vscode/settings.json .idea/workspace.xml
+    
+    # Create default configuration
+    cat > .gwt-config << EOF
+# Common development files
+.claude
+CLAUDE.md
+.agent-os/
+.vscode/
+.idea/
+EOF
+    
+    run _gwt_get_config_entries
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ ".claude" ]]
+    [[ "$output" =~ "CLAUDE.md" ]]
+    [[ "$output" =~ ".agent-os/" ]]
+    [[ "$output" =~ ".vscode/" ]]
+    [[ "$output" =~ ".idea/" ]]
+}
+
+@test "UNIT: default config example handles missing optional files gracefully" {
+    # Only create some of the default files
+    touch .claude CLAUDE.md
+    # Intentionally omit .agent-os, .vscode, .idea directories
+    
+    # Create default configuration with all entries
+    cat > .gwt-config << EOF
+.claude
+CLAUDE.md
+.agent-os/
+.vscode/
+.idea/
+EOF
+    
+    run _gwt_get_config_entries
+    [ "$status" -eq 0 ]
+    # Should include existing files
+    [[ "$output" =~ ".claude" ]]
+    [[ "$output" =~ "CLAUDE.md" ]]
+    # Should not fail on missing directories (they'll be filtered out)
+}
+
+@test "UNIT: default config example with comments is parsed correctly" {
+    # Create test files
+    touch .claude CLAUDE.md
+    mkdir -p .agent-os .vscode
+    
+    # Create default config with detailed comments
+    cat > .gwt-config << EOF
+# Git Worktree Default Configuration
+# This file specifies which development files to copy to new worktrees
+
+# Claude AI configuration
+.claude
+
+# Project documentation for Claude
+CLAUDE.md
+
+# Agent OS configuration and specs
+.agent-os/
+
+# VS Code editor settings
+.vscode/
+
+# JetBrains IDE settings
+.idea/
+EOF
+    
+    run _gwt_get_config_entries
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ ".claude" ]]
+    [[ "$output" =~ "CLAUDE.md" ]]
+    [[ "$output" =~ ".agent-os/" ]]
+    [[ "$output" =~ ".vscode/" ]]
+    # Comments should not appear in output
+    [[ ! "$output" =~ "Git Worktree Default" ]]
+    [[ ! "$output" =~ "Claude AI configuration" ]]
+}
+
+@test "UNIT: _gwt_create_example_config creates default configuration file" {
+    # Ensure no config file exists
+    [ ! -f .gwt-config ]
+    
+    # Function should create example config
+    run _gwt_create_example_config
+    [ "$status" -eq 0 ]
+    
+    # Config file should now exist
+    [ -f .gwt-config ]
+    
+    # Config should contain expected default entries
+    grep -q ".claude" .gwt-config
+    grep -q "CLAUDE.md" .gwt-config
+    grep -q ".agent-os/" .gwt-config
+    grep -q ".vscode/" .gwt-config
+    grep -q ".idea/" .gwt-config
+    
+    # Should contain helpful comments
+    grep -q "# " .gwt-config
+}
+
+@test "UNIT: _gwt_create_example_config does not overwrite existing config" {
+    # Create existing config file
+    echo "# Existing config" > .gwt-config
+    echo ".custom-file" >> .gwt-config
+    
+    # Function should not overwrite existing file
+    run _gwt_create_example_config
+    [ "$status" -eq 1 ]
+    
+    # Original content should be preserved
+    grep -q "Existing config" .gwt-config
+    grep -q ".custom-file" .gwt-config
+    
+    # Should not contain default content
+    ! grep -q ".claude" .gwt-config
+}
