@@ -20,9 +20,9 @@ jobs:
     
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: read           # Read access to review code
+      pull-requests: write     # Write access to post review comments
+      issues: read            # Read access to issues
       id-token: write
     
     steps:
