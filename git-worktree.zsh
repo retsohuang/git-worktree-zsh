@@ -1009,7 +1009,10 @@ function _gwt_copy_file() {
     
     # Use cp with preserve permissions and timestamps
     # Task 5.4: Ensure worktree creation continues despite copy failures
-    if cp -p "$source_file" "$target_dir" 2>/dev/null; then
+    local cp_error
+    cp_error=$(cp -p "$source_file" "$target_dir" 2>&1)
+    local cp_status=$?
+    if [[ $cp_status -eq 0 ]]; then
         _gwt_log_copy_operation "$source_file" "$target_dir" "success"
         return 0
     else
@@ -1019,15 +1022,10 @@ function _gwt_copy_file() {
             error_msg="Permission denied: target directory not writable"
         elif [[ ! -r "$source_file" ]]; then
             error_msg="Permission denied: source file not readable"
+        elif [[ -n "$cp_error" ]]; then
+            error_msg="Copy operation failed: $cp_error"
         else
-            # Capture cp error output for more informative message
-            local cp_error
-            cp_error=$(cp -p "$source_file" "$target_dir" 2>&1)
-            if [[ -n "$cp_error" ]]; then
-                error_msg="Copy operation failed: $cp_error"
-            else
-                error_msg="Copy operation failed"
-            fi
+            error_msg="Copy operation failed"
         fi
         
         _gwt_log_copy_operation "$source_file" "$target_dir" "failure" "$error_msg"
@@ -1073,7 +1071,10 @@ function _gwt_copy_directory() {
     local clean_source="${source_dir%/}"
     
     # Task 5.4: Ensure worktree creation continues despite copy failures
-    if cp -rp "$clean_source" "$target_dir" 2>/dev/null; then
+    local cp_error
+    cp_error=$(cp -rp "$clean_source" "$target_dir" 2>&1)
+    local cp_status=$?
+    if [[ $cp_status -eq 0 ]]; then
         _gwt_log_copy_operation "$source_dir" "$target_dir" "success"
         return 0
     else
@@ -1083,15 +1084,10 @@ function _gwt_copy_directory() {
             error_msg="Permission denied: target directory not writable"
         elif [[ ! -r "$source_dir" ]]; then
             error_msg="Permission denied: source directory not readable"
+        elif [[ -n "$cp_error" ]]; then
+            error_msg="Directory copy operation failed: $cp_error"
         else
-            # Capture cp error output for more informative message
-            local cp_error
-            cp_error=$(cp -rp "$clean_source" "$target_dir" 2>&1)
-            if [[ -n "$cp_error" ]]; then
-                error_msg="Directory copy operation failed: $cp_error"
-            else
-                error_msg="Directory copy operation failed"
-            fi
+            error_msg="Directory copy operation failed"
         fi
         
         _gwt_log_copy_operation "$source_dir" "$target_dir" "failure" "$error_msg"
@@ -1143,7 +1139,10 @@ function _gwt_copy_symlink() {
     # Task 5.4: Ensure worktree creation continues despite copy failures
     # Copy the target content, not the link itself
     # Use -L to dereference symlinks and -p to preserve attributes
-    if cp -Lp "$symlink" "$target_dir/$symlink_name" 2>/dev/null; then
+    local cp_error
+    cp_error=$(cp -Lp "$symlink" "$target_dir/$symlink_name" 2>&1)
+    local cp_status=$?
+    if [[ $cp_status -eq 0 ]]; then
         _gwt_log_copy_operation "$symlink" "$target_dir" "success"
         return 0
     else
@@ -1153,15 +1152,10 @@ function _gwt_copy_symlink() {
             error_msg="Permission denied: target directory not writable"
         elif [[ ! -r "$symlink" ]]; then
             error_msg="Permission denied: symlink target not readable"
+        elif [[ -n "$cp_error" ]]; then
+            error_msg="Symlink copy operation failed: $cp_error"
         else
-            # Capture cp error output for more informative message
-            local cp_error
-            cp_error=$(cp -Lp "$symlink" "$target_dir/$symlink_name" 2>&1)
-            if [[ -n "$cp_error" ]]; then
-                error_msg="Symlink copy operation failed: $cp_error"
-            else
-                error_msg="Symlink copy operation failed"
-            fi
+            error_msg="Symlink copy operation failed"
         fi
         
         _gwt_log_copy_operation "$symlink" "$target_dir" "failure" "$error_msg"
