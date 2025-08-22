@@ -20,9 +20,9 @@ jobs:
     
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: read           # Read access to review code
+      pull-requests: write     # Write access to post review comments
+      issues: read            # Read access to issues
       id-token: write
     
     steps:
@@ -36,6 +36,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: "claude"
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
           # model: "claude-opus-4-1-20250805"
