@@ -974,6 +974,41 @@ EOF
 # File Copy Functions
 # These functions implement the actual file and directory copying functionality
 
+# Helper function to execute copy operations with consistent error handling
+# Usage: _gwt_execute_copy_with_error_handling <operation-type> <source> <target> <cp-args...>
+function _gwt_execute_copy_with_error_handling() {
+    local operation="$1"
+    local source="$2"
+    local target="$3"
+    shift 3
+    local cp_args=("$@")
+    
+    # Execute copy command and capture both status and error output
+    local cp_error
+    cp_error=$(cp "${cp_args[@]}" "$source" "$target" 2>&1)
+    local cp_status=$?
+    
+    if [[ $cp_status -eq 0 ]]; then
+        _gwt_log_copy_operation "$source" "$target" "success"
+        return 0
+    else
+        # Determine specific error cause for informative message
+        local error_msg="Unknown error"
+        if [[ ! -w "$(dirname "$target")" ]]; then
+            error_msg="Permission denied: target directory not writable"
+        elif [[ ! -r "$source" ]]; then
+            error_msg="Permission denied: source not readable"
+        elif [[ -n "$cp_error" ]]; then
+            error_msg="$operation failed: $cp_error"
+        else
+            error_msg="$operation failed"
+        fi
+        
+        _gwt_log_copy_operation "$source" "$target" "failure" "$error_msg"
+        return 0  # Return success to continue worktree creation
+    fi
+}
+
 # Copy a single file to target directory with permissions preservation
 # Enhanced error handling for Task 5: graceful failure handling
 # Usage: _gwt_copy_file <source-file> <target-dir>
@@ -1009,28 +1044,7 @@ function _gwt_copy_file() {
     
     # Use cp with preserve permissions and timestamps
     # Task 5.4: Ensure worktree creation continues despite copy failures
-    local cp_error
-    cp_error=$(cp -p "$source_file" "$target_dir" 2>&1)
-    local cp_status=$?
-    if [[ $cp_status -eq 0 ]]; then
-        _gwt_log_copy_operation "$source_file" "$target_dir" "success"
-        return 0
-    else
-        # Check specific error causes
-        local error_msg="Unknown error"
-        if [[ ! -w "$target_dir" ]]; then
-            error_msg="Permission denied: target directory not writable"
-        elif [[ ! -r "$source_file" ]]; then
-            error_msg="Permission denied: source file not readable"
-        elif [[ -n "$cp_error" ]]; then
-            error_msg="Copy operation failed: $cp_error"
-        else
-            error_msg="Copy operation failed"
-        fi
-        
-        _gwt_log_copy_operation "$source_file" "$target_dir" "failure" "$error_msg"
-        return 0  # Return success to continue worktree creation
-    fi
+    _gwt_execute_copy_with_error_handling "Copy operation" "$source_file" "$target_dir" -p
 }
 
 # Copy a directory recursively to target directory with permissions preservation
@@ -1071,28 +1085,7 @@ function _gwt_copy_directory() {
     local clean_source="${source_dir%/}"
     
     # Task 5.4: Ensure worktree creation continues despite copy failures
-    local cp_error
-    cp_error=$(cp -rp "$clean_source" "$target_dir" 2>&1)
-    local cp_status=$?
-    if [[ $cp_status -eq 0 ]]; then
-        _gwt_log_copy_operation "$source_dir" "$target_dir" "success"
-        return 0
-    else
-        # Check specific error causes for better error messages
-        local error_msg="Unknown error"
-        if [[ ! -w "$target_dir" ]]; then
-            error_msg="Permission denied: target directory not writable"
-        elif [[ ! -r "$source_dir" ]]; then
-            error_msg="Permission denied: source directory not readable"
-        elif [[ -n "$cp_error" ]]; then
-            error_msg="Directory copy operation failed: $cp_error"
-        else
-            error_msg="Directory copy operation failed"
-        fi
-        
-        _gwt_log_copy_operation "$source_dir" "$target_dir" "failure" "$error_msg"
-        return 0  # Return success to continue worktree creation
-    fi
+    _gwt_execute_copy_with_error_handling "Directory copy operation" "$clean_source" "$target_dir" -rp
 }
 
 # Handle symlink by copying the target content (not the link itself)
@@ -1139,28 +1132,7 @@ function _gwt_copy_symlink() {
     # Task 5.4: Ensure worktree creation continues despite copy failures
     # Copy the target content, not the link itself
     # Use -L to dereference symlinks and -p to preserve attributes
-    local cp_error
-    cp_error=$(cp -Lp "$symlink" "$target_dir/$symlink_name" 2>&1)
-    local cp_status=$?
-    if [[ $cp_status -eq 0 ]]; then
-        _gwt_log_copy_operation "$symlink" "$target_dir" "success"
-        return 0
-    else
-        # Check specific error causes
-        local error_msg="Unknown error"
-        if [[ ! -w "$target_dir" ]]; then
-            error_msg="Permission denied: target directory not writable"
-        elif [[ ! -r "$symlink" ]]; then
-            error_msg="Permission denied: symlink target not readable"
-        elif [[ -n "$cp_error" ]]; then
-            error_msg="Symlink copy operation failed: $cp_error"
-        else
-            error_msg="Symlink copy operation failed"
-        fi
-        
-        _gwt_log_copy_operation "$symlink" "$target_dir" "failure" "$error_msg"
-        return 0  # Return success to continue worktree creation
-    fi
+    _gwt_execute_copy_with_error_handling "Symlink copy operation" "$symlink" "$target_dir/$symlink_name" -Lp
 }
 
 # Generic entry copying function that determines the appropriate copy method
