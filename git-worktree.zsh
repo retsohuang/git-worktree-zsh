@@ -766,27 +766,122 @@ function _gwt_complete_branch_names() {
 # Configuration File Parsing Functions
 # These functions implement .gwt-config file discovery and parsing
 
-# Find .gwt-config file in current directory or repository root
-# Returns: Path to config file, or exits with code 1 if not found
+# Find all .gwt-config files in hierarchy from current directory to git root
+# Returns: Array of config file paths ordered from closest to git root, or exits with code 1 if none found
 function _gwt_find_config_file() {
     local config_file=".gwt-config"
+    local -a config_files=()
     
-    # Check current directory first
-    if [[ -f "$config_file" ]]; then
-        echo "$(pwd)/$config_file"
-        return 0
-    fi
-    
-    # Fall back to repository root
+    # Cache git root determination for performance
     local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-    if [[ $? -eq 0 && -f "$repo_root/$config_file" ]]; then
-        echo "$repo_root/$config_file"
+    if [[ -z "$_GWT_CACHED_REPO_ROOT" ]]; then
+        _GWT_CACHED_REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+        if [[ $? -ne 0 ]]; then
+            # Not in a git repository
+            return 1
+        fi
+    fi
+    repo_root="$_GWT_CACHED_REPO_ROOT"
+    
+    # Start from current directory and walk up to git root
+    local current_dir="$(pwd)"
+    local search_dir="$current_dir"
+    local max_depth=50  # Loop protection
+    local depth=0
+    
+    while [[ "$search_dir" != "/" && $depth -lt $max_depth ]]; do
+        # Check for config file in current search directory
+        if [[ -f "$search_dir/$config_file" ]]; then
+            config_files+=("$search_dir/$config_file")
+        fi
+        
+        # Stop when we reach git root
+        if [[ "$search_dir" = "$repo_root" ]]; then
+            break
+        fi
+        
+        # Move to parent directory
+        search_dir=$(dirname "$search_dir")
+        ((depth++))
+    done
+    
+    # Return results
+    if [[ ${#config_files[@]} -gt 0 ]]; then
+        printf '%s\n' "${config_files[@]}"
         return 0
+    else
+        return 1
+    fi
+}
+
+# Merge multiple .gwt-config files with .gitignore-like precedence
+# Usage: _gwt_merge_configs <config-file-path> [<config-file-path>...]
+# The config files should be ordered from git root to current directory
+# Returns: Final merged list of files/patterns to copy
+function _gwt_merge_configs() {
+    local -a config_files=("$@")
+    local -a included_patterns=()
+    local -a excluded_patterns=()
+    
+    # Early return if no config files provided
+    if [[ ${#config_files[@]} -eq 0 ]]; then
+        return 1
     fi
     
-    # Config file not found
-    return 1
+    # Process each config file in order (git root to current directory)
+    for config_file in "${config_files[@]}"; do
+        # Skip non-existent config files gracefully
+        if [[ ! -f "$config_file" ]]; then
+            continue
+        fi
+        
+        # Read config file and process each pattern
+        while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+            # Skip empty lines and comments
+            [[ -z "$pattern" || "$pattern" =~ ^[[:space:]]*# ]] && continue
+            
+            # Trim whitespace
+            pattern=$(echo "$pattern" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [[ -z "$pattern" ]] && continue
+            
+            # Handle exclusion patterns (starting with !)
+            if [[ "$pattern" =~ ^! ]]; then
+                local exclude_pattern="${pattern#!}"
+                # Add to exclusion list
+                excluded_patterns+=("$exclude_pattern")
+                
+                # Remove from included patterns if previously added
+                local -a temp_included=()
+                for included in "${included_patterns[@]}"; do
+                    if [[ "$included" != "$exclude_pattern" ]]; then
+                        temp_included+=("$included")
+                    fi
+                done
+                included_patterns=("${temp_included[@]}")
+            else
+                # Include pattern - this overrides any previous exclusion
+                # First, remove from excluded patterns if it was excluded before
+                local -a temp_excluded=()
+                for excluded in "${excluded_patterns[@]}"; do
+                    if [[ "$excluded" != "$pattern" ]]; then
+                        temp_excluded+=("$excluded")
+                    fi
+                done
+                excluded_patterns=("${temp_excluded[@]}")
+                
+                # Add to included patterns
+                included_patterns+=("$pattern")
+            fi
+        done < "$config_file"
+    done
+    
+    # Remove duplicates from included patterns and output
+    if [[ ${#included_patterns[@]} -gt 0 ]]; then
+        printf '%s\n' "${included_patterns[@]}" | sort -u
+        return 0
+    else
+        return 0
+    fi
 }
 
 # Parse .gwt-config file and output valid entries

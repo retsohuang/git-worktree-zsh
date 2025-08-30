@@ -7,24 +7,24 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-- [ ] 1. Enhance config file discovery for hierarchical collection
-  - [ ] 1.1 Write tests for `_gwt_find_config_file()` function to collect all config files in hierarchy
-  - [ ] 1.2 Modify `_gwt_find_config_file()` to walk directory tree from current directory to git root
-  - [ ] 1.3 Implement directory traversal using `dirname` with loop protection
-  - [ ] 1.4 Return array of all found config file paths ordered from closest to git root
-  - [ ] 1.5 Add caching for git root determination to optimize performance
-  - [ ] 1.6 Handle edge cases like symlinks and permission denied errors gracefully
-  - [ ] 1.7 Verify all tests pass for hierarchical config discovery
+- [x] 1. Enhance config file discovery for hierarchical collection
+  - [x] 1.1 Write tests for `_gwt_find_config_file()` function to collect all config files in hierarchy
+  - [x] 1.2 Modify `_gwt_find_config_file()` to walk directory tree from current directory to git root
+  - [x] 1.3 Implement directory traversal using `dirname` with loop protection
+  - [x] 1.4 Return array of all found config file paths ordered from closest to git root
+  - [x] 1.5 Add caching for git root determination to optimize performance
+  - [x] 1.6 Handle edge cases like symlinks and permission denied errors gracefully
+  - [x] 1.7 Verify all tests pass for hierarchical config discovery
 
-- [ ] 2. Implement configuration merging with .gitignore-like precedence
-  - [ ] 2.1 Write tests for `_gwt_merge_configs()` function with various merging scenarios
-  - [ ] 2.2 Create new `_gwt_merge_configs()` function to handle configuration merging
-  - [ ] 2.3 Process collected config files from git root to current directory for proper precedence
-  - [ ] 2.4 Implement include/exclude pattern resolution with closer configs overriding parents
-  - [ ] 2.5 Add support for exclusion patterns (`!`) with proper precedence across merged configs
-  - [ ] 2.6 Return final merged list of files/patterns to copy
-  - [ ] 2.7 Optimize config parsing to avoid redundant file reads
-  - [ ] 2.8 Verify all tests pass for configuration merging logic
+- [x] 2. Implement configuration merging with .gitignore-like precedence
+  - [x] 2.1 Write tests for `_gwt_merge_configs()` function with various merging scenarios
+  - [x] 2.2 Create new `_gwt_merge_configs()` function to handle configuration merging
+  - [x] 2.3 Process collected config files from git root to current directory for proper precedence
+  - [x] 2.4 Implement include/exclude pattern resolution with closer configs overriding parents
+  - [x] 2.5 Add support for exclusion patterns (`!`) with proper precedence across merged configs
+  - [x] 2.6 Return final merged list of files/patterns to copy
+  - [x] 2.7 Optimize config parsing to avoid redundant file reads
+  - [x] 2.8 Verify all tests pass for configuration merging logic
 
 - [ ] 3. Enhance exclusion pattern handling across merged configurations
   - [ ] 3.1 Write tests for exclusion pattern precedence in merged configurations
