@@ -282,8 +282,7 @@ Execute user-configurable post-task actions to allow customization of what happe
 <conditional_execution>
   <lightweight_config_check>
     STEP_1: Use Bash(ls .agent-os/config/post-task-actions.yml) to check global config
-    STEP_2: Use Bash(ls [SPEC_FOLDER]/post-task-actions.yml) to check spec-specific config
-    STEP_3: IF any config file exists:
+    STEP_2: IF config file exists:
              EXECUTE: @.agent-os/instructions/core/post-task-execution.md
              PROVIDE: Complete task context for action execution
            ELSE:
@@ -308,12 +307,11 @@ Execute user-configurable post-task actions to allow customization of what happe
 </conditional_execution>
 
 <instructions>
-  ACTION: Use lightweight file existence check for YAML configuration files
+  ACTION: Use lightweight file existence check for YAML configuration file
   CHECK: .agent-os/config/post-task-actions.yml using Bash(ls)
-  CHECK: [SPEC_FOLDER]/post-task-actions.yml using Bash(ls)
-  EXECUTE: Post-task execution flow only if YAML configuration files exist
-  SKIP: If no configuration files found, continue normally without token cost
-  EFFICIENT: Use simple ls commands, avoid reading file contents during existence check
+  EXECUTE: Post-task execution flow only if YAML configuration file exists
+  SKIP: If no configuration file found, continue normally without token cost
+  EFFICIENT: Use simple ls command, avoid reading file contents during existence check
 </instructions>
 
 </step>

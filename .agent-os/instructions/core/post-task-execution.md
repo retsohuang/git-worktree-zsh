@@ -25,14 +25,12 @@ Execute user-configurable actions after completing a single task, allowing custo
 Check if user has configured any post-task execution actions by looking for configuration files.
 
 <configuration_sources>
-  <primary_config>[SPEC_FOLDER]/post-task-actions.yml</primary_config>
-  <fallback_config>@.agent-os/config/post-task-actions.yml</fallback_config>
+  <primary_config>@.agent-os/config/post-task-actions.yml</primary_config>
 </configuration_sources>
 
 <configuration_priority>
-  1. Spec-specific config: [SPEC_FOLDER]/post-task-actions.yml (highest priority)
-  2. Global config: @.agent-os/config/post-task-actions.yml
-  3. Default actions (if no config found)
+  1. Global config: @.agent-os/config/post-task-actions.yml
+  2. Default actions (if no config found)
 </configuration_priority>
 
 <instructions>
