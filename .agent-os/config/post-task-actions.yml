@@ -29,7 +29,7 @@ conditional_actions:
       type: prompt
       content: |
         Review the React components modified in this task for best practices and potential improvements.
-        
+
         Task: {{TASK_DESCRIPTION}}
         Files: {{FILES_MODIFIED}}
 
@@ -55,13 +55,13 @@ conditional_actions:
       type: prompt
       content: |
         Security review needed for authentication-related changes in: {{TASK_DESCRIPTION}}
-        
+
         Files modified: {{FILES_MODIFIED}}
-        
+
         Check for security vulnerabilities and best practices.
 
   - name: commit_after_task
-    enabled: false
+    enabled: true
     description: Create git commit after task completion
     condition:
       # Only commit if files were actually modified
