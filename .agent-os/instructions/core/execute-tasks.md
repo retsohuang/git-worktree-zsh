@@ -10,13 +10,20 @@ encoding: UTF-8
 
 ## Overview
 
-Initiate execution of one or more tasks for a given spec.
+Execute tasks for a given spec following three distinct phases:
+1. Pre-execution setup (Steps 1-3)
+2. Task execution loop (Step 4)
+3. Post-execution tasks (Step 5)
+
+**IMPORTANT**: All three phases MUST be completed. Do not stop after phase 2.
 
 <pre_flight_check>
   EXECUTE: @.agent-os/instructions/meta/pre-flight.md
 </pre_flight_check>
 
 <process_flow>
+
+## Phase 1: Pre-Execution Setup
 
 <step number="1" name="task_assignment">
 
@@ -65,38 +72,9 @@ Use the context-fetcher subagent to gather minimal context for task understandin
 
 </step>
 
-<step number="3" name="development_server_check">
+<step number="3" subagent="git-workflow" name="git_branch_management">
 
-### Step 3: Check for Development Server
-
-Check for any running development server and ask user permission to shut it down if found to prevent port conflicts.
-
-<server_check_flow>
-  <if_running>
-    ASK user to shut down
-    WAIT for response
-  </if_running>
-  <if_not_running>
-    PROCEED immediately
-  </if_not_running>
-</server_check_flow>
-
-<user_prompt>
-  A development server is currently running.
-  Should I shut it down before proceeding? (yes/no)
-</user_prompt>
-
-<instructions>
-  ACTION: Check for running local development server
-  CONDITIONAL: Ask permission only if server is running
-  PROCEED: Immediately if no server detected
-</instructions>
-
-</step>
-
-<step number="4" subagent="git-workflow" name="git_branch_management">
-
-### Step 4: Git Branch Management
+### Step 3: Git Branch Management
 
 Use the git-workflow subagent to manage git branches to ensure proper isolation by creating or switching to the appropriate branch for the spec.
 
@@ -120,9 +98,13 @@ Use the git-workflow subagent to manage git branches to ensure proper isolation 
 
 </step>
 
-<step number="5" name="task_execution_loop">
+## Phase 2: Task Execution Loop
 
-### Step 5: Task Execution Loop
+<step number="4" name="task_execution_loop">
+
+### Step 4: Task Execution Loop
+
+**IMPORTANT**: This is a loop. Execute ALL assigned tasks before proceeding to Phase 3.
 
 Execute all assigned parent tasks and their subtasks using @.agent-os/instructions/core/execute-task.md instructions, continuing until all tasks are complete.
 
@@ -136,6 +118,8 @@ Execute all assigned parent tasks and their subtasks using @.agent-os/instructio
     WAIT for task completion
     UPDATE tasks.md status
   END FOR
+
+  **IMPORTANT**: After loop completes, CONTINUE to Phase 3 (Step 5). Do not stop here.
 </execution_flow>
 
 <loop_logic>
@@ -166,19 +150,32 @@ Execute all assigned parent tasks and their subtasks using @.agent-os/instructio
   UPDATE: Task status after each completion
   VERIFY: All tasks complete before proceeding
   HANDLE: Blocking issues appropriately
+  **IMPORTANT**: When all tasks complete, proceed to Step 5
 </instructions>
 
 </step>
 
-<step number="6" name="complete_tasks">
+## Phase 3: Post-Execution Tasks
 
-### Step 6: Run the task completion steps
+<step number="5" name="post_execution_tasks">
 
-After all tasks in tasks.md have been implemented, use @.agent-os/instructions/core/complete-tasks.md to run our series of steps we always run when finishing and delivering a new feature.
+### Step 5: Run the task completion steps
+
+**CRITICAL**: This step MUST be executed after all tasks are implemented. Do not end the process without completing this phase.
+
+After all tasks in tasks.md have been implemented, use @.agent-os/instructions/core/post-execution-tasks.md to run our series of steps we always run when finishing and delivering a new feature.
 
 <instructions>
-  LOAD: @.agent-os/instructions/core/complete-tasks.md once
-  ACTION: execute all steps in the complete-tasks.md process_flow.
+  LOAD: @.agent-os/instructions/core/post-execution-tasks.md once
+  ACTION: execute all steps in the post-execution-tasks.md process_flow.
+  **IMPORTANT**: This includes:
+    - Running full test suite
+    - Git workflow (commit, push, PR)
+    - Verifying task completion
+    - Updating roadmap (if applicable)
+    - Creating recap document
+    - Generating completion summary
+    - Playing notification sound
 </instructions>
 
 </step>

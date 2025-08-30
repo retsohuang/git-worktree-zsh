@@ -1,0 +1,94 @@
+# Post-Task Actions Configuration
+# Customize what happens after each task completes
+
+version: "1.0"
+description: "Post-task action configuration"
+
+# Global actions run after every task
+global_actions:
+  - name: completion_log
+    type: log
+    enabled: false
+    log_file: .agent-os/logs/task-completions.log
+    description: Log task completion details
+
+  - name: completion_sound
+    type: sound
+    enabled: false
+    sound_file: /System/Library/Sounds/Ping.aiff
+    description: Play sound when task completes
+
+# Conditional actions run only when conditions match
+conditional_actions:
+  - name: react_component_review
+    enabled: false
+    description: Review React components for best practices
+    condition:
+      files_modified_pattern: src/components/*
+    action:
+      type: prompt
+      content: |
+        Review the React components modified in this task for best practices and potential improvements.
+        
+        Task: {{TASK_DESCRIPTION}}
+        Files: {{FILES_MODIFIED}}
+
+  - name: test_after_implementation
+    enabled: false
+    description: Run tests after implementation tasks
+    condition:
+      task_description_contains: implement
+    action:
+      type: command
+      content: npm test
+      capture_output: true
+
+  - name: security_review_auth
+    enabled: false
+    description: Security review for authentication changes
+    condition:
+      OR:
+        - task_description_contains: auth
+        - task_description_contains: login
+        - files_modified_pattern: "*auth*"
+    action:
+      type: prompt
+      content: |
+        Security review needed for authentication-related changes in: {{TASK_DESCRIPTION}}
+        
+        Files modified: {{FILES_MODIFIED}}
+        
+        Check for security vulnerabilities and best practices.
+
+  - name: commit_after_task
+    enabled: false
+    description: Create git commit after task completion
+    condition:
+      # Only commit if files were actually modified
+      files_modified_pattern: "*"
+    action:
+      type: prompt
+      subagent: git-workflow
+      content: |
+        Create a git commit for the completed task:
+
+        **Task Context:**
+        - Task: {{TASK_DESCRIPTION}}
+        - Files modified: {{FILES_MODIFIED}}
+        - Completion status: {{COMPLETION_STATUS}}
+        - Spec folder: {{SPEC_FOLDER}}
+
+        **Request:**
+        Create a git commit with:
+        1. Stage any unstaged changes for files modified in this task
+        2. Generate descriptive commit message using conventional commit format based on task context
+        3. Include the standard Claude attribution footer
+        4. Create the commit and confirm success
+
+        Focus on what was implemented in this specific task, not the entire feature.
+
+# System settings
+settings:
+  max_concurrent_actions: 3
+  timeout_seconds: 300
+  continue_on_error: true

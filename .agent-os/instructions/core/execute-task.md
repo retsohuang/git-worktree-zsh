@@ -256,6 +256,68 @@ IMPORTANT: In the tasks.md file, mark this task and its sub-tasks complete by up
 
 </step>
 
+<step number="8" name="post_task_execution">
+
+### Step 8: Post-Task Execution Actions
+
+Execute user-configurable post-task actions to allow customization of what happens when each individual task completes.
+
+<post_task_context>
+  <task_information>
+    - Current parent task number and description
+    - All completed sub-tasks
+    - Files modified during task execution
+    - Technology stack used in task
+    - Task completion status and any blocking issues
+  </task_information>
+  
+  <execution_context>
+    - Current spec folder path
+    - Git branch information
+    - Task execution timing
+    - Test results from task verification
+  </execution_context>
+</post_task_context>
+
+<conditional_execution>
+  <lightweight_config_check>
+    STEP_1: Use Bash(ls .agent-os/config/post-task-actions.yml) to check global config
+    STEP_2: Use Bash(ls [SPEC_FOLDER]/post-task-actions.yml) to check spec-specific config
+    STEP_3: IF any config file exists:
+             EXECUTE: @.agent-os/instructions/core/post-task-execution.md
+             PROVIDE: Complete task context for action execution
+           ELSE:
+             SKIP: Post-task execution (no configuration found)
+  </lightweight_config_check>
+  
+  <efficient_checking>
+    AVOID: Reading file contents during check
+    USE: Only directory listing and file existence checks
+    PRINCIPLE: Check file existence before reading content
+    FALLBACK: If directory check fails, assume no configuration
+  </efficient_checking>
+  
+  <context_passing>
+    TASK_NUMBER: [CURRENT_PARENT_TASK_NUMBER]
+    TASK_DESCRIPTION: [CURRENT_TASK_DESCRIPTION]
+    SUB_TASKS: [LIST_OF_COMPLETED_SUBTASKS]
+    SPEC_FOLDER: [CURRENT_SPEC_FOLDER_PATH]
+    FILES_MODIFIED: [FILES_CHANGED_IN_THIS_TASK]
+    COMPLETION_STATUS: [SUCCESS|BLOCKED]
+  </context_passing>
+</conditional_execution>
+
+<instructions>
+  ACTION: Use lightweight file existence check for YAML configuration files
+  CHECK: .agent-os/config/post-task-actions.yml using Bash(ls)
+  CHECK: [SPEC_FOLDER]/post-task-actions.yml using Bash(ls)
+  EXECUTE: Post-task execution flow only if YAML configuration files exist
+  SKIP: If no configuration files found, continue normally without token cost
+  EFFICIENT: Use simple ls commands, avoid reading file contents during existence check
+</instructions>
+
+</step>
+
 </process_flow>
 
 <post_flight_check>

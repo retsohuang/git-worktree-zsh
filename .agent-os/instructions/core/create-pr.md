@@ -62,11 +62,11 @@ CALCULATE: Local commits difference with target branch
 
 </step>
 
-<step number="2" subagent="context-fetcher" name="spec_context_analysis">
+<step number="2" subagent="project-manager" name="spec_context_analysis">
 
 ### Step 2: Spec Context Analysis
 
-Use context-fetcher subagent to gather comprehensive context for PR description from spec files and completed tasks.
+Use project-manager subagent to gather comprehensive context for PR description from spec files and completed tasks.
 
 <branch_to_spec_mapping>
 <branch_name_analysis>
@@ -78,7 +78,7 @@ LOCATE: Corresponding spec folder in .agent-os/specs/
 </branch_to_spec_mapping>
 
 <context_fetcher_request>
-ACTION: Use context-fetcher subagent
+ACTION: Use project-manager subagent
 REQUEST: "Gather PR context for branch [CURRENT_BRANCH_NAME]:
 
             **Required Context:**
@@ -122,7 +122,7 @@ ERROR: Cannot create meaningful PR description
 </context_requirements>
 
 <instructions>
-  ACTION: Use context-fetcher subagent to gather comprehensive PR context
+  ACTION: Use project-manager subagent to gather comprehensive PR context
   REQUEST: Spec files, tasks, and git context for current branch
   PROCESS: Returned context into structured format for PR creation
   VALIDATE: Sufficient context available for meaningful PR description

@@ -3,7 +3,7 @@ description: Create a git commit for completed work
 alwaysApply: false
 version: 1.0
 encoding: UTF-8
-allowed-tools: mcp__git__git_status, mcp__git__git_diff_staged, mcp__git__git_diff_unstaged, mcp__git__git_commit, mcp__filesystem__read_text_file, mcp__filesystem__list_directory, Task, Bash, Glob, Grep
+allowed-tools: mcp__git__git_status, mcp__git__git_diff_staged, mcp__git__git_diff_unstaged, mcp__filesystem__read_text_file, mcp__filesystem__list_directory, Task, Bash, Glob, Grep
 ---
 
 # Commit Command
@@ -26,7 +26,7 @@ Verify that there are changes ready to commit and assess the scope of modificati
 
 <status_verification>
 <git_status_check>
-USE: mcp**git**git_status to check repository state
+USE: mcp__git__git_status to check repository state
 IDENTIFY: Modified, added, deleted, and untracked files
 DETECT: Staged vs unstaged changes
 VALIDATE: Repository is in committable state
@@ -34,14 +34,14 @@ CHECK: Not in merge, rebase, cherry-pick, or bisect state
 </git_status_check>
 
 <staged_changes_analysis>
-USE: mcp**git**git_diff_staged to analyze staged changes
+USE: mcp__git__git_diff_staged to analyze staged changes
 EXTRACT: Files and modifications ready for commit
 CATEGORIZE: Types of staged changes (code, tests, docs, config)
 ASSESS: Scope and impact of staged modifications
 </staged_changes_analysis>
 
 <unstaged_changes_analysis>
-USE: mcp**git**git_diff_unstaged to analyze unstaged changes
+USE: mcp__git__git_diff_unstaged to analyze unstaged changes
 IDENTIFY: Working directory modifications not yet staged
 COMPARE: Staged vs unstaged changes for staging decision
 DETERMINE: Whether to auto-stage unstaged changes
@@ -53,7 +53,7 @@ USE: Only staged changes for commit
 NOTE: Unstaged changes will remain in working directory
 CONFIRM: Commit will include staged changes only
 ELSE IF unstaged changes exist:
-USE: mcp**git**git_add to stage all unstaged changes
+USE: Bash(git add*) to stage all unstaged changes
 TARGET: All modified, added, and deleted files
 CONFIRM: All modifications will be included in commit
 ELSE:
@@ -70,10 +70,10 @@ ERROR: Nothing to commit, working tree clean
   </error_conditions>
 
 <mcp_tools_sequence>
-STEP_1: Use mcp**git**git_status to get repository state
-STEP_2: Use mcp**git**git_diff_staged to analyze staged changes
-STEP_3: Use mcp**git**git_diff_unstaged to analyze unstaged changes
-STEP_4: Use mcp**git**git_add if staging is needed
+STEP_1: Use mcp__git__git_status to get repository state
+STEP_2: Use mcp__git__git_diff_staged to analyze staged changes
+STEP_3: Use mcp__git__git_diff_unstaged to analyze unstaged changes
+STEP_4: Use Bash(git add*) if staging is needed
 FALLBACK: Use Bash tool if MCP tools fail
 </mcp_tools_sequence>
 
@@ -81,20 +81,20 @@ FALLBACK: Use Bash tool if MCP tools fail
   ACTION: Use MCP git tools to check status and analyze changes
   VALIDATE: Changes are ready for commit using mcp__git__git_status
   ANALYZE: Both staged and unstaged changes with diff tools
-  STAGE: Unstaged changes using mcp__git__git_add if needed
+  STAGE: Unstaged changes using Bash(git add*) if needed
   ASSESS: Scope and type of changes for commit message generation
 </instructions>
 
 </step>
 
-<step number="2" subagent="context-fetcher" name="commit_context_analysis">
+<step number="2" subagent="project-manager" name="commit_context_analysis">
 
 ### Step 2: Commit Context Analysis
 
-Use context-fetcher subagent to gather context for generating an appropriate commit message.
+Use project-manager subagent to gather context for generating an appropriate commit message.
 
 <context_gathering_request>
-ACTION: Use context-fetcher subagent
+ACTION: Use project-manager subagent
 REQUEST: "Analyze current changes for commit message generation:
 
             **Git Context (from MCP tools):**
@@ -152,7 +152,7 @@ VALIDATE: Sufficient information for meaningful commit message
 </context_analysis>
 
 <instructions>
-  ACTION: Use context-fetcher to analyze current changes
+  ACTION: Use project-manager to analyze current changes
   GATHER: Context about modifications and their purpose
   CATEGORIZE: Type and scope of changes
   PREPARE: Information for commit message generation
@@ -260,7 +260,7 @@ REQUEST: "Create git commit with contextual message:
 </commit_message_guidelines>
 
 <tools_sequence>
-STEP_1: Use mcp**git**git_add if additional staging needed
+STEP_1: Use Bash(git add*) if additional staging needed
 STEP_2: Use Bash tool with git commit HEREDOC format
 STEP_3: Capture commit hash from successful commit
 FALLBACK: Use git-workflow subagent if Bash fails
