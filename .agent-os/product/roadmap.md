@@ -40,6 +40,7 @@
 
 - Worktree templates and presets
 - Integration with git hooks
+- Automatic PR fetching functionality for GitHub/GitLab workflows
 - Bulk operations on multiple worktrees
 - Export/import worktree configurations
 - Performance optimizations

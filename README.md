@@ -359,10 +359,11 @@ gwt-create hotfix/login-issue
 ### Code Review Workflow
 
 ```bash
-# Review a pull request locally
+# Review a pull request locally (requires manual fetch first)
+git fetch origin pull/123/head:pr/123-new-authentication
 gwt-create pr/123-new-authentication
 
-# Test the feature branch
+# Test an existing feature branch
 gwt-create feature/oauth-integration
 
 # Compare implementations side by side
