@@ -217,7 +217,7 @@ gwt-create hotfix/critical-bug ../hotfix-directory
 
 #### `gwt-create`
 
-Create a git worktree with intelligent branch handling.
+Create a git worktree with intelligent branch handling and automatic configuration file copying.
 
 **Syntax:**
 
@@ -234,6 +234,78 @@ gwt-create <branch-name> [target-directory] [options]
 
 - `-h, --help`: Display usage information
 - `--dry-run`: Show what would be done without making changes
+
+#### Configuration File (`.gwt-config`)
+
+Automatically copy development files and directories to new worktrees by creating a `.gwt-config` file in your repository root. This file specifies which files and directories should be copied to maintain consistent development environments across worktrees.
+
+**Location Priority:**
+1. Current directory (`./.gwt-config`)
+2. Repository root (`$(git rev-parse --show-toplevel)/.gwt-config`)
+
+**File Format:**
+- One file/directory path per line
+- Comments start with `#`
+- Empty lines are ignored
+- Supports glob patterns (`*.md`, `.vscode/*`)
+- Supports exclusion patterns with `!` prefix (`!README.md`)
+- Whitespace is automatically trimmed
+
+**Example `.gwt-config` file:**
+
+```bash
+# Git Worktree Configuration
+# Development files to copy to new worktrees
+
+# Claude AI configuration
+.claude
+
+# Project documentation for Claude
+CLAUDE.md
+
+# Agent OS specifications and configuration
+.agent-os/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Configuration files
+*.json
+!package-lock.json
+
+# Exclude temporary files
+!.vscode/temp.log
+```
+
+**Common Use Cases:**
+
+- **AI Development**: Copy `.claude`, `CLAUDE.md`, `.agent-os/` for Claude AI workflows
+- **IDE Settings**: Copy `.vscode/`, `.idea/` for consistent editor configuration
+- **Project Configuration**: Copy config files while excluding generated ones
+- **Documentation**: Copy project-specific documentation files
+
+**Supported Patterns:**
+
+```bash
+# Exact files
+.claude
+CLAUDE.md
+
+# Directories (trailing slash recommended)
+.vscode/
+.agent-os/
+
+# Glob patterns
+*.md
+.vscode/*
+config/*.json
+
+# Exclusions
+!README.md
+!.vscode/temp.log
+!node_modules/
+```
 
 **Branch Strategy Detection:**
 
@@ -305,6 +377,23 @@ gwt-create release/v2.1.0
 
 # Create hotfix worktree for current release
 gwt-create hotfix/v2.0.1
+```
+
+### Development Environment Consistency
+
+```bash
+# Set up .gwt-config for consistent development environments
+echo ".claude\nCLAUDE.md\n.vscode/" > .gwt-config
+
+# Create worktree - config files are automatically copied
+gwt-create feature/new-dashboard
+
+# Your development setup is now ready in the new worktree:
+# ~/projects/my-app-worktrees/new-dashboard/
+# ├── .claude          # Copied automatically
+# ├── CLAUDE.md         # Copied automatically  
+# ├── .vscode/          # Copied automatically
+# └── [source code]     # Git worktree content
 ```
 
 ### Error Recovery Examples
