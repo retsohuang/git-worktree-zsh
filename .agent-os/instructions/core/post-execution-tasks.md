@@ -56,10 +56,11 @@ Use the git-workflow subagent to create git commit, push to GitHub, and create p
 <instructions>
   ACTION: Use git-workflow subagent
   REQUEST: "Complete git workflow for [SPEC_NAME] feature:
-            - Spec: [SPEC_FOLDER_PATH]
-            - Changes: All modified files
+            - Spec: [SPEC_FOLDER_PATH_RELATIVE_TO_PROJECT_ROOT]
+            - Changes: All modified files (use relative paths only)
             - Target: main branch
-            - Description: [SUMMARY_OF_IMPLEMENTED_FEATURES]"
+            - Description: [SUMMARY_OF_IMPLEMENTED_FEATURES]
+            - SECURITY: Use only relative paths, never absolute paths with user information"
   WAIT: For workflow completion
   PROCESS: Save PR URL for summary
 </instructions>
@@ -90,8 +91,9 @@ Use the project-manager subagent to read the current spec's tasks.md file and ve
 <instructions>
   ACTION: Use project-manager subagent
   REQUEST: "Verify that all tasks have been marked with their outcome:
-            - Read [SPEC_FOLDER_PATH]/tasks.md
-            - Check all tasks are marked complete with [x] or (in rare cases) a documented blocking issue."
+            - Read [SPEC_FOLDER_PATH_RELATIVE_TO_PROJECT_ROOT]/tasks.md
+            - Check all tasks are marked complete with [x] or (in rare cases) a documented blocking issue.
+            - SECURITY: Use only relative paths in any output or documentation"
   WAIT: For task verification analysis
   PROCESS: Update task status as needed
 </instructions>
@@ -144,7 +146,8 @@ Use the project-manager subagent to create a recap document in .agent-os/recaps/
             - Create file: .agent-os/recaps/[SPEC_FOLDER_NAME].md
             - Use template format with completed features summary
             - Include context from spec-lite.md
-            - Document: [SPEC_FOLDER_PATH]"
+            - Document: [SPEC_FOLDER_PATH_RELATIVE_TO_PROJECT_ROOT]
+            - SECURITY: Use ONLY relative paths, never absolute paths with user information"
   WAIT: For recap document creation
   PROCESS: Verify file is created with proper content
 </instructions>

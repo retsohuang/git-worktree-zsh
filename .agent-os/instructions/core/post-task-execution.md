@@ -72,9 +72,9 @@ Gather context about the completed task to provide to user-configured actions.
   TASK_NUMBER: [PARENT_TASK_NUMBER]
   TASK_DESCRIPTION: [TASK_DESCRIPTION]
   SUB_TASKS_COMPLETED: [LIST_OF_SUBTASKS]
-  SPEC_FOLDER: [SPEC_FOLDER_PATH]
+  SPEC_FOLDER: [SPEC_FOLDER_PATH_RELATIVE_TO_PROJECT_ROOT]
   BRANCH: [CURRENT_BRANCH]
-  FILES_MODIFIED: [LIST_OF_MODIFIED_FILES]
+  FILES_MODIFIED: [LIST_OF_MODIFIED_FILES_RELATIVE_TO_PROJECT_ROOT]
   TECH_STACK: [TECHNOLOGY_USED]
   COMPLETION_STATUS: [SUCCESS|BLOCKED|PARTIAL]
   EXECUTION_TIME: [START_TIME] to [END_TIME]
@@ -85,6 +85,8 @@ Gather context about the completed task to provide to user-configured actions.
   GATHER: All relevant information about completed task
   FORMAT: Context for user-configured actions
   PREPARE: Data structure for action execution
+  SECURITY: Use ONLY relative paths from project root (never absolute paths with user information)
+  SANITIZE: Remove any system-specific or user-identifying information from context
 </instructions>
 
 </step>
@@ -174,8 +176,8 @@ Execute user-defined prompts with task context if configured.
   <context_injection>
     REPLACE: {{TASK_NUMBER}} with actual task number
     REPLACE: {{TASK_DESCRIPTION}} with task description
-    REPLACE: {{FILES_MODIFIED}} with list of modified files
-    REPLACE: {{SPEC_FOLDER}} with spec folder path
+    REPLACE: {{FILES_MODIFIED}} with list of modified files (RELATIVE PATHS ONLY)
+    REPLACE: {{SPEC_FOLDER}} with spec folder path (RELATIVE TO PROJECT ROOT)
     REPLACE: {{BRANCH}} with current branch
     REPLACE: {{TECH_STACK}} with technology used
     REPLACE: {{COMPLETION_STATUS}} with completion status
