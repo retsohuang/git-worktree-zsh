@@ -4,6 +4,12 @@
 # A comprehensive zsh function suite for managing git worktrees
 # Version: 1.0.0
 
+# Global variables for caching git repository information
+typeset -g _GWT_CACHED_REPO_ROOT
+
+# Configuration constants  
+readonly GWT_MAX_DIRECTORY_TRAVERSAL_DEPTH=50  # Loop protection for config file discovery
+
 # gwt-create: Create a new git worktree with branch in organized folder structure
 # Usage: gwt-create <branch-name> [target-directory]
 # Creates worktree in "{project-name}-worktrees/{branch-name}" pattern
@@ -799,7 +805,7 @@ function _gwt_find_config_file() {
     # Start from current directory and walk up to git root
     local current_dir="$(pwd)"
     local search_dir="$current_dir"
-    local max_depth=50  # Loop protection
+    local max_depth=$GWT_MAX_DIRECTORY_TRAVERSAL_DEPTH
     local depth=0
     
     while [[ "$search_dir" != "/" && $depth -lt $max_depth ]]; do
@@ -808,14 +814,21 @@ function _gwt_find_config_file() {
             echo "Debug: Checking directory: $search_dir" >&2
         fi
         
-        # Handle permission denied errors gracefully
-        if [[ ! -r "$search_dir" ]]; then
+        # Handle directory access issues gracefully
+        if [[ ! -d "$search_dir" ]]; then
+            if [[ "$GWT_DEBUG" == "1" ]]; then
+                echo "Debug: Directory does not exist: $search_dir (skipping)" >&2
+            fi
+        elif [[ ! -r "$search_dir" ]]; then
             if [[ "$GWT_DEBUG" == "1" ]]; then
                 echo "Debug: Permission denied for directory: $search_dir (skipping)" >&2
             else
                 echo "Warning: Permission denied accessing directory '$search_dir', skipping in hierarchy search" >&2
             fi
-            # Continue to parent directory
+        fi
+        
+        # Continue to parent directory if we can't access current one
+        if [[ ! -d "$search_dir" || ! -r "$search_dir" ]]; then
             search_dir=$(dirname "$search_dir")
             ((depth++))
             continue
