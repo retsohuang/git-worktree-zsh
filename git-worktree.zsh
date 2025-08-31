@@ -772,16 +772,29 @@ function _gwt_find_config_file() {
     local config_file=".gwt-config"
     local -a config_files=()
     
+    # Debug: Show hierarchy traversal start
+    if [[ "$GWT_DEBUG" == "1" ]]; then
+        echo "Debug: Configuration hierarchy traversal started" >&2
+        echo "Debug: Searching from '$(pwd)' up to git root" >&2
+    fi
+    
     # Cache git root determination for performance
     local repo_root
     if [[ -z "$_GWT_CACHED_REPO_ROOT" ]]; then
         _GWT_CACHED_REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
         if [[ $? -ne 0 ]]; then
             # Not in a git repository
+            if [[ "$GWT_DEBUG" == "1" ]]; then
+                echo "Debug: Not in a git repository" >&2
+            fi
             return 1
         fi
     fi
     repo_root="$_GWT_CACHED_REPO_ROOT"
+    
+    if [[ "$GWT_DEBUG" == "1" ]]; then
+        echo "Debug: Git root: $repo_root" >&2
+    fi
     
     # Start from current directory and walk up to git root
     local current_dir="$(pwd)"
@@ -790,13 +803,46 @@ function _gwt_find_config_file() {
     local depth=0
     
     while [[ "$search_dir" != "/" && $depth -lt $max_depth ]]; do
+        # Debug: Show directory being searched
+        if [[ "$GWT_DEBUG" == "1" ]]; then
+            echo "Debug: Checking directory: $search_dir" >&2
+        fi
+        
+        # Handle permission denied errors gracefully
+        if [[ ! -r "$search_dir" ]]; then
+            if [[ "$GWT_DEBUG" == "1" ]]; then
+                echo "Debug: Permission denied for directory: $search_dir (skipping)" >&2
+            else
+                echo "Warning: Permission denied accessing directory '$search_dir', skipping in hierarchy search" >&2
+            fi
+            # Continue to parent directory
+            search_dir=$(dirname "$search_dir")
+            ((depth++))
+            continue
+        fi
+        
         # Check for config file in current search directory
         if [[ -f "$search_dir/$config_file" ]]; then
-            config_files+=("$search_dir/$config_file")
+            # Check if we can read the config file
+            if [[ -r "$search_dir/$config_file" ]]; then
+                config_files+=("$search_dir/$config_file")
+                if [[ "$GWT_DEBUG" == "1" ]]; then
+                    echo "Debug: Found config file: $search_dir/$config_file" >&2
+                fi
+            else
+                if [[ "$GWT_DEBUG" == "1" ]]; then
+                    echo "Debug: Config file found but not readable: $search_dir/$config_file (permission denied)" >&2
+                else
+                    echo "Warning: Found .gwt-config file at '$search_dir/$config_file' but cannot read due to permission restrictions" >&2
+                fi
+            fi
         fi
         
         # Stop when we reach git root
         if [[ "$search_dir" = "$repo_root" ]]; then
+            if [[ "$GWT_DEBUG" == "1" ]]; then
+                echo "Debug: Reached git root, stopping traversal" >&2
+            fi
             break
         fi
         
@@ -805,11 +851,29 @@ function _gwt_find_config_file() {
         ((depth++))
     done
     
+    # Debug: Show final results
+    if [[ "$GWT_DEBUG" == "1" ]]; then
+        if [[ ${#config_files[@]} -gt 0 ]]; then
+            echo "Debug: Found ${#config_files[@]} config file(s) in hierarchy:" >&2
+            for config in "${config_files[@]}"; do
+                echo "Debug:   - $config" >&2
+            done
+        else
+            echo "Debug: No config files found in entire hierarchy" >&2
+        fi
+    fi
+    
     # Return results
     if [[ ${#config_files[@]} -gt 0 ]]; then
         printf '%s\n' "${config_files[@]}"
         return 0
     else
+        # Provide clear error message when no config files found
+        if [[ "$GWT_DEBUG" != "1" ]]; then
+            echo "Error: No .gwt-config files found in directory hierarchy from '$(pwd)' to git root '$repo_root'" >&2
+            echo "Suggestion: Create a .gwt-config file with file patterns to copy, for example:" >&2
+            echo "  echo '*.md' > .gwt-config" >&2
+        fi
         return 1
     fi
 }
@@ -823,8 +887,20 @@ function _gwt_merge_configs() {
     local -a included_patterns=()
     local -a excluded_patterns=()
     
+    # Debug: Show configuration merging start
+    if [[ "$GWT_DEBUG" == "1" ]]; then
+        echo "Debug: Configuration merging started with ${#config_files[@]} config file(s)" >&2
+        echo "Debug: Processing configs in precedence order (git root to current):" >&2
+        for config in "${config_files[@]}"; do
+            echo "Debug:   - $config" >&2
+        done
+    fi
+    
     # Early return if no config files provided
     if [[ ${#config_files[@]} -eq 0 ]]; then
+        if [[ "$GWT_DEBUG" == "1" ]]; then
+            echo "Debug: No config files provided to merge" >&2
+        fi
         return 1
     fi
     
@@ -832,7 +908,14 @@ function _gwt_merge_configs() {
     for config_file in "${config_files[@]}"; do
         # Skip non-existent config files gracefully
         if [[ ! -f "$config_file" ]]; then
+            if [[ "$GWT_DEBUG" == "1" ]]; then
+                echo "Debug: Skipping non-existent config file: $config_file" >&2
+            fi
             continue
+        fi
+        
+        if [[ "$GWT_DEBUG" == "1" ]]; then
+            echo "Debug: Processing config file: $config_file" >&2
         fi
         
         # Read config file and process each pattern
@@ -849,6 +932,10 @@ function _gwt_merge_configs() {
                 local exclude_pattern="${pattern#!}"
                 # Add to exclusion list
                 excluded_patterns+=("$exclude_pattern")
+                
+                if [[ "$GWT_DEBUG" == "1" ]]; then
+                    echo "Debug:   Excluding pattern '$exclude_pattern' (from $config_file)" >&2
+                fi
                 
                 # Remove from included patterns if previously added
                 local -a temp_included=()
@@ -871,9 +958,32 @@ function _gwt_merge_configs() {
                 
                 # Add to included patterns
                 included_patterns+=("$pattern")
+                
+                if [[ "$GWT_DEBUG" == "1" ]]; then
+                    echo "Debug:   Including pattern '$pattern' (from $config_file)" >&2
+                fi
             fi
         done < "$config_file"
     done
+    
+    # Debug: Show final merged result
+    if [[ "$GWT_DEBUG" == "1" ]]; then
+        echo "Debug: Configuration merging completed" >&2
+        if [[ ${#included_patterns[@]} -gt 0 ]]; then
+            echo "Debug: Final merged patterns (${#included_patterns[@]} total):" >&2
+            for pattern in $(printf '%s\n' "${included_patterns[@]}" | sort -u); do
+                echo "Debug:   ✓ $pattern" >&2
+            done
+        else
+            echo "Debug: No patterns remain after merging" >&2
+        fi
+        if [[ ${#excluded_patterns[@]} -gt 0 ]]; then
+            echo "Debug: Currently excluded patterns:" >&2
+            for pattern in "${excluded_patterns[@]}"; do
+                echo "Debug:   ✗ $pattern" >&2
+            done
+        fi
+    fi
     
     # Remove duplicates from included patterns and output
     if [[ ${#included_patterns[@]} -gt 0 ]]; then
