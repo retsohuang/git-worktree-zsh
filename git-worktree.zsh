@@ -1108,15 +1108,36 @@ function _gwt_validate_config_entries() {
 # Get all valid configuration entries for copying
 # Returns: List of files/directories to copy, or empty if no config
 function _gwt_get_config_entries() {
-    local config_file
-    config_file=$(_gwt_find_config_file 2>/dev/null)
+    local -a config_files
+    local config_output
+    
+    # Get hierarchical config files (multiple paths)
+    config_output=$(_gwt_find_config_file 2>/dev/null)
     
     if [[ $? -ne 0 ]]; then
         # No config file found - return empty (backward compatibility)
         return 0
     fi
     
-    _gwt_validate_config_entries "$config_file"
+    # Convert multiline output to array
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            config_files+=("$line")
+        fi
+    done <<< "$config_output"
+    
+    # Use hierarchical config merging if multiple configs found
+    if [[ ${#config_files[@]} -gt 1 ]]; then
+        # Reverse order for proper precedence (git root to current)
+        local -a reversed_configs=()
+        for (( i=${#config_files[@]}-1; i>=0; i-- )); do
+            reversed_configs+=("${config_files[i]}")
+        done
+        _gwt_validate_config_entries <(_gwt_merge_configs "${reversed_configs[@]}")
+    elif [[ ${#config_files[@]} -eq 1 ]]; then
+        # Single config file - maintain backward compatibility
+        _gwt_validate_config_entries "${config_files[0]}"
+    fi
 }
 
 # Create example .gwt-config file with common development files
