@@ -26,13 +26,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.7 Optimize config parsing to avoid redundant file reads
   - [x] 2.8 Verify all tests pass for configuration merging logic
 
-- [ ] 3. Enhance exclusion pattern handling across merged configurations
-  - [ ] 3.1 Write tests for exclusion pattern precedence in merged configurations
-  - [ ] 3.2 Implement proper exclusion pattern (`!`) handling in merge function
-  - [ ] 3.3 Ensure exclusion patterns from closer configs override parent exclusions
-  - [ ] 3.4 Handle complex scenarios with multiple exclusion patterns in hierarchy
-  - [ ] 3.5 Test relative path resolution from multiple config file locations
-  - [ ] 3.6 Verify all tests pass for exclusion pattern handling
+- [x] 3. Enhance exclusion pattern handling across merged configurations
+  - [x] 3.1 Write tests for exclusion pattern precedence in merged configurations
+  - [x] 3.2 Implement proper exclusion pattern (`!`) handling in merge function
+  - [x] 3.3 Ensure exclusion patterns from closer configs override parent exclusions
+  - [x] 3.4 Handle complex scenarios with multiple exclusion patterns in hierarchy
+  - [x] 3.5 Test relative path resolution from multiple config file locations
+  - [x] 3.6 Verify all tests pass for exclusion pattern handling
 
 - [ ] 4. Add enhanced logging and debugging capabilities
   - [ ] 4.1 Write tests for enhanced logging output and debug information
