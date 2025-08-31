@@ -46,4 +46,6 @@
 - Bulk operations on multiple worktrees
 - Export/import worktree configurations
 - Performance optimizations
+  - [ ] **Config merging optimization** - Replace O(n²) array rebuilding with persistent associative arrays for large config files (PR #9 feedback)
+  - [ ] **Subshell pipeline optimization** - Fix variable persistence in config processing pipeline (PR #9 feedback)
 - Comprehensive testing suite
