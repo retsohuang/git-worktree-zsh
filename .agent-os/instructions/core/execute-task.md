@@ -12,12 +12,19 @@ encoding: UTF-8
 
 Execute a specific task along with its sub-tasks systematically following a TDD development workflow.
 
+**🔥 CRITICAL WORKFLOW REMINDER**: This process has 8 mandatory steps. Step 8 (Post-Task Execution Actions) is REQUIRED after every task completion and must NOT be skipped.
+
 <pre_flight_check>
   EXECUTE: @.agent-os/instructions/meta/pre-flight.md
 </pre_flight_check>
 
 
 <process_flow>
+
+## ⚠️ MANDATORY WORKFLOW STEPS (ALL 8 STEPS MUST BE COMPLETED)
+Steps 1-6: Task analysis and implementation
+Step 7: Update tasks.md status 
+Step 8: **CRITICAL** - Execute post-task actions (NEVER SKIP THIS STEP)
 
 <step number="1" name="task_understanding">
 
@@ -252,13 +259,16 @@ IMPORTANT: In the tasks.md file, mark this task and its sub-tasks complete by up
   MARK: [x] for completed items immediately
   DOCUMENT: Blocking issues with ⚠️ emoji
   LIMIT: 3 attempts before marking as blocked
+  **CRITICAL**: Do NOT proceed to next task without completing Step 8 first
 </instructions>
 
 </step>
 
 <step number="8" name="post_task_execution">
 
-### Step 8: Post-Task Execution Actions
+### Step 8: Post-Task Execution Actions [MANDATORY]
+
+**🔥 CRITICAL**: This step is MANDATORY and must ALWAYS be executed after completing any task. 
 
 Execute user-configurable post-task actions to allow customization of what happens when each individual task completes.
 
@@ -307,10 +317,20 @@ Execute user-configurable post-task actions to allow customization of what happe
 </conditional_execution>
 
 <instructions>
-  ACTION: Use lightweight file existence check for YAML configuration file
-  CHECK: .agent-os/config/post-task-actions.yml using Bash(ls)
-  EXECUTE: Post-task execution flow only if YAML configuration file exists
-  SKIP: If no configuration file found, continue normally without token cost
+  **🚨 MANDATORY EXECUTION ORDER**:
+  
+  STEP_A: ALWAYS use lightweight file existence check for YAML configuration file
+  STEP_B: CHECK .agent-os/config/post-task-actions.yml using Bash(ls)
+  STEP_C: IF config file exists:
+           - MUST EXECUTE @.agent-os/instructions/core/post-task-execution.md  
+           - MUST PROVIDE complete task context
+           - DO NOT proceed until post-task execution completes
+         ELSE:
+           - LOG: "No post-task configuration found, skipping post-task actions"
+           - CONTINUE: Proceed normally
+  
+  **⚠️ FAILURE TO EXECUTE STEP 8 IS A CRITICAL WORKFLOW ERROR**
+  
   EFFICIENT: Use simple ls command, avoid reading file contents during existence check
 </instructions>
 
