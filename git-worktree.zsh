@@ -1156,7 +1156,21 @@ function _gwt_get_config_entries() {
         for (( i=${#config_files[@]}-1; i>=0; i-- )); do
             reversed_configs+=("${config_files[i]}")
         done
-        _gwt_validate_config_entries <(_gwt_merge_configs "${reversed_configs[@]}")
+        # Get merged patterns and validate them
+        _gwt_merge_configs "${reversed_configs[@]}" | while IFS= read -r pattern; do
+            if [[ -n "$pattern" ]]; then
+                # Expand and validate each pattern
+                while IFS= read -r entry; do
+                    # Skip .git directory - it should never be copied to worktrees
+                    if [[ "$entry" == ".git" ]]; then
+                        continue
+                    fi
+                    if [[ -e "$entry" ]]; then
+                        echo "$entry"
+                    fi
+                done < <(_gwt_expand_config_patterns <<< "$pattern")
+            fi
+        done
     elif [[ ${#config_files[@]} -eq 1 ]]; then
         # Single config file - maintain backward compatibility
         _gwt_validate_config_entries "${config_files[0]}"
