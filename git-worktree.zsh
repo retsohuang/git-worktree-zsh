@@ -1109,7 +1109,7 @@ function _gwt_validate_config_entries() {
 # Returns: List of files/directories to copy, or empty if no config
 function _gwt_get_config_entries() {
     local config_file
-    config_file=$(_gwt_find_config_file)
+    config_file=$(_gwt_find_config_file 2>/dev/null)
     
     if [[ $? -ne 0 ]]; then
         # No config file found - return empty (backward compatibility)

@@ -461,7 +461,7 @@ EOF
     cd subproject
     
     # Ensure no .gwt-config files exist in hierarchy
-    run _gwt_find_config_file
+    run run_in_zsh "_gwt_find_config_file 2>/dev/null"
     [ "$status" -eq 1 ]
     [ -z "$output" ]
 }
