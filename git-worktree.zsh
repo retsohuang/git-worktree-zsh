@@ -937,24 +937,34 @@ function _gwt_merge_configs() {
                     echo "Debug:   Excluding pattern '$exclude_pattern' (from $config_file)" >&2
                 fi
                 
-                # Remove from included patterns if previously added
-                local -a temp_included=()
+                # Remove from included patterns if previously added (O(n) optimization)
+                local -A included_map
+                # Build associative array for O(1) lookups
                 for included in "${included_patterns[@]}"; do
-                    if [[ "$included" != "$exclude_pattern" ]]; then
-                        temp_included+=("$included")
-                    fi
+                    included_map["$included"]=1
                 done
-                included_patterns=("${temp_included[@]}")
+                # Remove the excluded pattern
+                unset included_map["$exclude_pattern"]
+                # Rebuild array from remaining keys
+                included_patterns=()
+                for pattern in "${!included_map[@]}"; do
+                    included_patterns+=("$pattern")
+                done
             else
                 # Include pattern - this overrides any previous exclusion
-                # First, remove from excluded patterns if it was excluded before
-                local -a temp_excluded=()
+                # First, remove from excluded patterns if it was excluded before (O(n) optimization)
+                local -A excluded_map
+                # Build associative array for O(1) lookups
                 for excluded in "${excluded_patterns[@]}"; do
-                    if [[ "$excluded" != "$pattern" ]]; then
-                        temp_excluded+=("$excluded")
-                    fi
+                    excluded_map["$excluded"]=1
                 done
-                excluded_patterns=("${temp_excluded[@]}")
+                # Remove the included pattern from exclusions
+                unset excluded_map["$pattern"]
+                # Rebuild array from remaining keys
+                excluded_patterns=()
+                for excluded_pattern in "${!excluded_map[@]}"; do
+                    excluded_patterns+=("$excluded_pattern")
+                done
                 
                 # Add to included patterns
                 included_patterns+=("$pattern")
