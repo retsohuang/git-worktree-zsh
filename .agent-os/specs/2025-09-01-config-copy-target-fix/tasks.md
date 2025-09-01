@@ -28,12 +28,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.4 Ensure log messages remain clear and informative
   - [x] 3.5 Test log output consistency across different config scenarios
 
-- [ ] 4. Integration testing and validation
-  - [ ] 4.1 Test root `.gwt-config` scenario (files copy to worktree root)
-  - [ ] 4.2 Test subdirectory `.gwt-config` scenario (files copy to correct subdirectory)
-  - [ ] 4.3 Test mixed scenarios with multiple config files at different levels
-  - [ ] 4.4 Validate no duplicate log messages in any scenario
-  - [ ] 4.5 Verify existing hierarchical config discovery functionality remains intact
+- [x] 4. Integration testing and validation
+  - [x] 4.1 Test root `.gwt-config` scenario (files copy to worktree root)
+  - [x] 4.2 Test subdirectory `.gwt-config` scenario (files copy to correct subdirectory)
+  - [x] 4.3 Test mixed scenarios with multiple config files at different levels
+  - [x] 4.4 Validate no duplicate log messages in any scenario
+  - [x] 4.5 Verify existing hierarchical config discovery functionality remains intact
 
 - [ ] 5. Documentation and example updates
   - [ ] 5.1 Update relevant documentation to clarify subdirectory config file behavior

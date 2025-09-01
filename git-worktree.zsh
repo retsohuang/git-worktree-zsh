@@ -5,7 +5,8 @@
 # Version: 1.0.0
 
 # Global variables for caching git repository information
-typeset -g _GWT_CACHED_REPO_ROOT
+# Note: Using regular declaration for bash/bats compatibility
+_GWT_CACHED_REPO_ROOT=""
 
 # Configuration constants  
 readonly GWT_MAX_DIRECTORY_TRAVERSAL_DEPTH=50  # Loop protection for config file discovery
@@ -950,34 +951,24 @@ function _gwt_merge_configs() {
                     echo "Debug:   Excluding pattern '$exclude_pattern' (from $config_file)" >&2
                 fi
                 
-                # Remove from included patterns if previously added (O(n) optimization)
-                local -A included_map
-                # Build associative array for O(1) lookups
+                # Remove from included patterns if previously added (bash-compatible)
+                local new_included_patterns=()
                 for included in "${included_patterns[@]}"; do
-                    included_map["$included"]=1
+                    if [[ "$included" != "$exclude_pattern" ]]; then
+                        new_included_patterns+=("$included")
+                    fi
                 done
-                # Remove the excluded pattern
-                unset included_map["$exclude_pattern"]
-                # Rebuild array from remaining keys
-                included_patterns=()
-                for pattern in "${!included_map[@]}"; do
-                    included_patterns+=("$pattern")
-                done
+                included_patterns=("${new_included_patterns[@]}")
             else
                 # Include pattern - this overrides any previous exclusion
-                # First, remove from excluded patterns if it was excluded before (O(n) optimization)
-                local -A excluded_map
-                # Build associative array for O(1) lookups
+                # First, remove from excluded patterns if it was excluded before (bash-compatible)
+                local new_excluded_patterns=()
                 for excluded in "${excluded_patterns[@]}"; do
-                    excluded_map["$excluded"]=1
+                    if [[ "$excluded" != "$pattern" ]]; then
+                        new_excluded_patterns+=("$excluded")
+                    fi
                 done
-                # Remove the included pattern from exclusions
-                unset excluded_map["$pattern"]
-                # Rebuild array from remaining keys
-                excluded_patterns=()
-                for excluded_pattern in "${!excluded_map[@]}"; do
-                    excluded_patterns+=("$excluded_pattern")
-                done
+                excluded_patterns=("${new_excluded_patterns[@]}")
                 
                 # Add to included patterns
                 included_patterns+=("$pattern")
