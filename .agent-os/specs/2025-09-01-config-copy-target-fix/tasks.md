@@ -35,11 +35,11 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.4 Validate no duplicate log messages in any scenario
   - [x] 4.5 Verify existing hierarchical config discovery functionality remains intact
 
-- [ ] 5. Documentation and example updates
-  - [ ] 5.1 Update relevant documentation to clarify subdirectory config file behavior
-  - [ ] 5.2 Update examples to reflect correct file copying behavior
-  - [ ] 5.3 Add examples showing subdirectory config file usage
-  - [ ] 5.4 Verify all documentation is consistent with implementation
+- [x] 5. Documentation and example updates
+  - [x] 5.1 Update relevant documentation to clarify subdirectory config file behavior
+  - [x] 5.2 Update examples to reflect correct file copying behavior
+  - [x] 5.3 Add examples showing subdirectory config file usage
+  - [x] 5.4 Verify all documentation is consistent with implementation
 
 - [ ] 6. Final verification and testing
   - [ ] 6.1 Run all core tests to ensure functionality works correctly

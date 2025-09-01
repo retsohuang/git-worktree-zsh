@@ -239,9 +239,16 @@ gwt-create <branch-name> [target-directory] [options]
 
 Automatically copy development files and directories to new worktrees by creating a `.gwt-config` file in your repository root. This file specifies which files and directories should be copied to maintain consistent development environments across worktrees.
 
-**Location Priority:**
-1. Current directory (`./.gwt-config`)
-2. Repository root (`$(git rev-parse --show-toplevel)/.gwt-config`)
+**Location and Directory Structure:**
+
+The system searches for `.gwt-config` files hierarchically from the current directory up to the repository root, and **preserves directory structure** when copying files:
+
+1. **Hierarchical Discovery**: Searches from current directory up to repository root
+2. **Directory Structure Preservation**: 
+   - Files from root `.gwt-config` → copy to worktree root
+   - Files from subdirectory `.gwt-config` → copy to matching subdirectory in worktree
+   - Example: `src/.gwt-config` entries copy to `worktree-name/src/` directory
+3. **Path Context Awareness**: Each config file's location determines where its entries are copied
 
 **File Format:**
 - One file/directory path per line
@@ -251,13 +258,14 @@ Automatically copy development files and directories to new worktrees by creatin
 - Supports exclusion patterns with `!` prefix (`!README.md`)
 - Whitespace is automatically trimmed
 
-**Example `.gwt-config` file:**
+**Example Configuration Files:**
 
+**Root `.gwt-config` (files copy to worktree root):**
 ```bash
 # Git Worktree Configuration
 # Development files to copy to new worktrees
 
-# Claude AI configuration
+# Claude AI configuration  
 .claude
 
 # Project documentation for Claude
@@ -278,12 +286,31 @@ CLAUDE.md
 !.vscode/temp.log
 ```
 
+**Subdirectory `src/.gwt-config` (files copy to `worktree-name/src/`):**
+```bash  
+# Frontend development configuration
+# Files copy to src/ directory in worktree
+
+# Development server config
+webpack.dev.js
+vite.config.js
+
+# Environment files for this component
+.env.development
+.env.local
+
+# Linting configuration specific to src
+.eslintrc.js
+```
+
 **Common Use Cases:**
 
 - **AI Development**: Copy `.claude`, `CLAUDE.md`, `.agent-os/` for Claude AI workflows
-- **IDE Settings**: Copy `.vscode/`, `.idea/` for consistent editor configuration
+- **IDE Settings**: Copy `.vscode/`, `.idea/` for consistent editor configuration  
 - **Project Configuration**: Copy config files while excluding generated ones
 - **Documentation**: Copy project-specific documentation files
+- **Monorepo Projects**: Use subdirectory configs for component-specific development files
+- **Microservices**: Separate config files per service directory with preserved structure
 
 **Supported Patterns:**
 
@@ -383,18 +410,25 @@ gwt-create hotfix/v2.0.1
 ### Development Environment Consistency
 
 ```bash
-# Set up .gwt-config for consistent development environments
+# Set up root .gwt-config for project-wide files
 echo ".claude\nCLAUDE.md\n.vscode/" > .gwt-config
 
-# Create worktree - config files are automatically copied
-gwt-create feature/new-dashboard
+# Set up subdirectory config for component-specific files  
+mkdir -p src
+echo "webpack.dev.js\n.env.local" > src/.gwt-config
 
-# Your development setup is now ready in the new worktree:
+# Create worktree - files copy to appropriate locations
+cd src && gwt-create feature/new-dashboard
+
+# Your development setup preserves directory structure:
 # ~/projects/my-app-worktrees/new-dashboard/
-# ├── .claude          # Copied automatically
-# ├── CLAUDE.md         # Copied automatically  
-# ├── .vscode/          # Copied automatically
-# └── [source code]     # Git worktree content
+# ├── .claude          # From root config → worktree root
+# ├── CLAUDE.md         # From root config → worktree root
+# ├── .vscode/          # From root config → worktree root
+# └── src/
+#     ├── webpack.dev.js    # From src/.gwt-config → worktree/src/
+#     ├── .env.local        # From src/.gwt-config → worktree/src/
+#     └── [source code]     # Git worktree content
 ```
 
 ### Error Recovery Examples
