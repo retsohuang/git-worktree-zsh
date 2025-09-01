@@ -14,12 +14,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.4 Write tests to verify no duplicate log messages during copying
   - [x] 1.5 Write regression tests to ensure existing functionality remains intact
 
-- [ ] 2. Fix file copy target directory calculation logic
-  - [ ] 2.1 Analyze current `_gwt_copy_config_files` function implementation
-  - [ ] 2.2 Implement logic to calculate correct target directory based on `.gwt-config` location
-  - [ ] 2.3 Add path preservation logic for subdirectory structure
-  - [ ] 2.4 Ensure compatibility with both root and subdirectory config files
-  - [ ] 2.5 Verify hierarchical config discovery integration works correctly
+- [x] 2. Fix file copy target directory calculation logic
+  - [x] 2.1 Analyze current `_gwt_copy_config_files` function implementation
+  - [x] 2.2 Implement logic to calculate correct target directory based on `.gwt-config` location
+  - [x] 2.3 Add path preservation logic for subdirectory structure
+  - [x] 2.4 Ensure compatibility with both root and subdirectory config files
+  - [x] 2.5 Verify hierarchical config discovery integration works correctly
 
 - [ ] 3. Eliminate duplicate log messages during file copying
   - [ ] 3.1 Identify source of duplicate copy log messages

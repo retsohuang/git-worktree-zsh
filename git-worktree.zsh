@@ -1398,26 +1398,99 @@ function _gwt_copy_symlink() {
     _gwt_execute_copy_with_error_handling "Symlink copy operation" "$symlink" "$target_dir/$symlink_name" -Lp
 }
 
+# Calculate the correct target directory for a source file based on .gwt-config location
+# This fixes the bug where subdirectory .gwt-config files copy to wrong targets
+# Usage: _gwt_calculate_target_directory <source-entry> <base-target-dir>
+function _gwt_calculate_target_directory() {
+    local source_entry="$1"
+    local base_target_dir="$2"
+    
+    # Get the absolute path of the source entry
+    local source_abs_path
+    if [[ -e "$source_entry" || -L "$source_entry" ]]; then
+        source_abs_path=$(realpath "$source_entry" 2>/dev/null || echo "$source_entry")
+    else
+        # For nonexistent files, get absolute path of parent directory + filename
+        local parent_dir=$(dirname "$source_entry")
+        local filename=$(basename "$source_entry")
+        if [[ -d "$parent_dir" ]]; then
+            local parent_abs_path=$(realpath "$parent_dir" 2>/dev/null || echo "$parent_dir")
+            source_abs_path="$parent_abs_path/$filename"
+        else
+            source_abs_path=$(realpath "$source_entry" 2>/dev/null || echo "$source_entry")
+        fi
+    fi
+    
+    # Find the nearest .gwt-config file for this source entry
+    local config_dir
+    local current_dir=$(dirname "$source_abs_path")
+    local git_root
+    git_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)")
+    
+    # Search up the directory tree for the nearest .gwt-config file
+    while [[ "$current_dir" != "/" && "$current_dir" != "$git_root/.." ]]; do
+        if [[ -f "$current_dir/.gwt-config" ]]; then
+            config_dir="$current_dir"
+            break
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    
+    # If no config found, fall back to git root
+    if [[ -z "$config_dir" ]]; then
+        config_dir="$git_root"
+    fi
+    
+    # Calculate the relative path from config directory to git root
+    local config_relative_to_git_root
+    if command -v realpath >/dev/null 2>&1; then
+        config_relative_to_git_root=$(realpath --relative-to="$git_root" "$config_dir" 2>/dev/null || echo ".")
+    else
+        # Fallback for systems without realpath
+        if [[ "$config_dir" == "$git_root" ]]; then
+            config_relative_to_git_root="."
+        else
+            config_relative_to_git_root="${config_dir#$git_root/}"
+        fi
+    fi
+    
+    # Calculate the target directory
+    local target_dir
+    if [[ "$config_relative_to_git_root" == "." ]]; then
+        # Config is at git root - files go to worktree root (current behavior)
+        target_dir="$base_target_dir"
+    else
+        # Config is in subdirectory - preserve the subdirectory structure
+        target_dir="$base_target_dir/$config_relative_to_git_root"
+    fi
+    
+    echo "$target_dir"
+}
+
 # Generic entry copying function that determines the appropriate copy method
 # Usage: _gwt_copy_entry <source-entry> <target-dir>
 function _gwt_copy_entry() {
     local source_entry="$1"
-    local target_dir="$2"
+    local base_target_dir="$2"
     
     if [[ ! -e "$source_entry" && ! -L "$source_entry" ]]; then
         echo "Error: Source '$source_entry' does not exist" >&2
         return 1
     fi
     
+    # Calculate the correct target directory based on .gwt-config location
+    local correct_target_dir
+    correct_target_dir=$(_gwt_calculate_target_directory "$source_entry" "$base_target_dir")
+    
     if [[ -L "$source_entry" ]]; then
         # Handle symbolic links
-        _gwt_copy_symlink "$source_entry" "$target_dir"
+        _gwt_copy_symlink "$source_entry" "$correct_target_dir"
     elif [[ -f "$source_entry" ]]; then
         # Handle regular files
-        _gwt_copy_file "$source_entry" "$target_dir"
+        _gwt_copy_file "$source_entry" "$correct_target_dir"
     elif [[ -d "$source_entry" ]]; then
         # Handle directories
-        _gwt_copy_directory "$source_entry" "$target_dir"
+        _gwt_copy_directory "$source_entry" "$correct_target_dir"
     else
         echo "Error: Unknown file type for '$source_entry'" >&2
         return 1
