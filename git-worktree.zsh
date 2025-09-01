@@ -1618,10 +1618,8 @@ function _gwt_copy_config_files() {
     
     for entry in "${config_entries[@]}"; do
         if _gwt_copy_entry "$entry" "$target_dir"; then
-            _gwt_log_copy_operation "$entry" "$target_dir" "success"
             ((success++))
         else
-            _gwt_log_copy_operation "$entry" "$target_dir" "failed"
             ((failed++))
         fi
     done

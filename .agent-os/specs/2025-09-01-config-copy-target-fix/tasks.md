@@ -21,12 +21,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.4 Ensure compatibility with both root and subdirectory config files
   - [x] 2.5 Verify hierarchical config discovery integration works correctly
 
-- [ ] 3. Eliminate duplicate log messages during file copying
-  - [ ] 3.1 Identify source of duplicate copy log messages
-  - [ ] 3.2 Review logging mechanism in file copy operations
-  - [ ] 3.3 Implement deduplication logic for copy messages
-  - [ ] 3.4 Ensure log messages remain clear and informative
-  - [ ] 3.5 Test log output consistency across different config scenarios
+- [x] 3. Eliminate duplicate log messages during file copying
+  - [x] 3.1 Identify source of duplicate copy log messages
+  - [x] 3.2 Review logging mechanism in file copy operations
+  - [x] 3.3 Implement deduplication logic for copy messages
+  - [x] 3.4 Ensure log messages remain clear and informative
+  - [x] 3.5 Test log output consistency across different config scenarios
 
 - [ ] 4. Integration testing and validation
   - [ ] 4.1 Test root `.gwt-config` scenario (files copy to worktree root)
