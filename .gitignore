@@ -37,5 +37,6 @@ test-output/
 # Git directory (explicit exclusion to prevent accidental inclusion)
 .git/
 
-# Claude Code local settings (keep project settings but ignore user-specific ones)
+# AI Service
 .claude/settings.local.json
+.serena/
