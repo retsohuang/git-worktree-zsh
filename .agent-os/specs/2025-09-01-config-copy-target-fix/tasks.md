@@ -41,9 +41,9 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 5.3 Add examples showing subdirectory config file usage
   - [x] 5.4 Verify all documentation is consistent with implementation
 
-- [ ] 6. Final verification and testing
-  - [ ] 6.1 Run all core tests to ensure functionality works correctly
-  - [ ] 6.2 Run integration tests to verify end-to-end workflows
-  - [ ] 6.3 Run regression tests to ensure no existing functionality is broken
-  - [ ] 6.4 Verify all validation criteria from spec are met
-  - [ ] 6.5 Confirm all tests pass and implementation is complete
+- [x] 6. Final verification and testing
+  - [x] 6.1 Run all core tests to ensure functionality works correctly
+  - [x] 6.2 Run integration tests to verify end-to-end workflows
+  - [x] 6.3 Run regression tests to ensure no existing functionality is broken
+  - [x] 6.4 Verify all validation criteria from spec are met
+  - [x] 6.5 Confirm all tests pass and implementation is complete
