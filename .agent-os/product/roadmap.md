@@ -1,8 +1,8 @@
 # Product Roadmap
 
-> Last Updated: 2025-08-07
+> Last Updated: 2025-08-31
 > Version: 1.0.0
-> Status: Planning
+> Status: In Progress
 
 ## Phase 1: Core Functionality (4-6 weeks)
 
@@ -11,7 +11,7 @@
 
 ### Must-Have Features
 
-- `gwt-create` - Create new worktree with branch
+- [x] `gwt-create` - Create new worktree with branch
 - `gwt-list` - Display all worktrees with status
 - `gwt-switch` - Navigate to specific worktree
 - `gwt-remove` - Clean up unused worktrees
@@ -29,7 +29,9 @@
 - Smart directory organization
 - Integration with popular zsh frameworks
 - Improved error messages and help system
-- Configuration options for customization
+- [x] Configuration options for customization
+- [x] **Hierarchical configuration discovery for monorepos** (Completed 2025-08-31)
+- [x] **Enhanced debug logging and error handling** (Completed 2025-08-31)
 
 ## Phase 3: Advanced Features (4-5 weeks)
 
@@ -44,4 +46,6 @@
 - Bulk operations on multiple worktrees
 - Export/import worktree configurations
 - Performance optimizations
+  - [ ] **Config merging optimization** - Replace O(n²) array rebuilding with persistent associative arrays for large config files (PR #9 feedback)
+  - [ ] **Subshell pipeline optimization** - Fix variable persistence in config processing pipeline (PR #9 feedback)
 - Comprehensive testing suite

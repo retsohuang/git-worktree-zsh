@@ -129,6 +129,14 @@ bats test/core/ test/unit/ test/integration/
   - Modifications to feature protection rules
   - New development commands or workflows
 
+### Security Guidelines Compliance
+
+- **CRITICAL**: Follow `.agent-os/standards/security-guidelines.md` for all Agent OS workflows
+- **Never expose absolute file paths** containing user information in documentation
+- **Always use relative paths** from project root in generated documentation
+- **Sanitize context variables** before passing to subagents
+- See security guidelines for comprehensive prevention rules
+
 ## Task Execution Protocol
 
 ### CRITICAL: Task Status Tracking Rules
